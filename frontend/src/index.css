@@ -25,10 +25,45 @@ html, body, #root {
   height: 100%;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background-color: var(--color-chalk);
   color: var(--color-ink);
   font-family: var(--font-body);
+}
+
+/* --- Landing page animations --- */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes drift-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Scroll-reveal: elements start hidden, .in-view (added by IntersectionObserver
+   in Home.jsx) triggers the reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+}
+.reveal.in-view {
+  animation: drift-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* Signature "session card" perforated edge - evokes the clinic's physical

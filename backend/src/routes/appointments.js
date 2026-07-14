@@ -52,6 +52,99 @@ router.get("/", requireAuth, (req, res) => {
   res.json(db.prepare(sql).all(...params));
 });
 
+// GET /api/appointments/slots?therapist_id=&date=YYYY-MM-DD
+// Returns open hourly slots for that therapist on that day - already-booked
+// and already-passed slots are simply left out of the list (not flagged,
+// just absent), so a slot another parent just took disappears on next fetch.
+router.get("/slots", requireAuth, (req, res) => {
+  const { therapist_id, date } = req.query;
+  if (!therapist_id || !date) {
+    return res.status(400).json({ error: "therapist_id and date are required" });
+  }
+
+  const therapist = db.prepare("SELECT * FROM therapists WHERE id = ?").get(therapist_id);
+  if (!therapist) return res.status(404).json({ error: "Therapist not found" });
+
+  const [y, m, d] = date.split("-").map(Number);
+  if (!y || !m || !d) return res.status(400).json({ error: "date must be YYYY-MM-DD" });
+
+  const dayOfWeek = new Date(y, m - 1, d).getDay();
+  if (dayOfWeek === 0) {
+    return res.json({ date, therapist_id: Number(therapist_id), closed: true, slots: [] });
+  }
+
+  const dayStart = new Date(y, m - 1, d, 0, 0, 0, 0);
+  const dayEnd = new Date(y, m - 1, d, 23, 59, 59, 999);
+
+  const booked = db
+    .prepare(
+      `SELECT start_time, end_time FROM appointments
+       WHERE therapist_id = ? AND status != 'cancelled'
+         AND start_time < ? AND end_time > ?`
+    )
+    .all(therapist_id, dayEnd.toISOString(), dayStart.toISOString());
+
+  const now = new Date();
+  const CLINIC_OPEN_HOUR = 8;
+  const CLINIC_CLOSE_HOUR = 17;
+  const slots = [];
+
+  for (let hour = CLINIC_OPEN_HOUR; hour < CLINIC_CLOSE_HOUR; hour++) {
+    const start = new Date(y, m - 1, d, hour, 0, 0, 0);
+    const end = new Date(y, m - 1, d, hour + 1, 0, 0, 0);
+    if (start < now) continue;
+
+    const taken = booked.some(
+      (b) => new Date(b.start_time) < end && new Date(b.end_time) > start
+    );
+    if (!taken) {
+      slots.push({ start_time: start.toISOString(), end_time: end.toISOString() });
+    }
+  }
+
+  res.json({ date, therapist_id: Number(therapist_id), closed: false, slots });
+});
+
+// POST /api/appointments/book  (parent self-service booking)
+// The parent picks one of the slots returned above. client_id is resolved
+// from their own account server-side - they can only ever book for their
+// own child. hasConflict() runs again here as a safety net in case two
+// parents grabbed the same slot at the same moment.
+router.post("/book", requireAuth, requireRole("parent"), (req, res) => {
+  const { therapist_id, service_type, start_time, end_time } = req.body || {};
+  if (!therapist_id || !service_type || !start_time || !end_time) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  const client = db.prepare("SELECT * FROM clients WHERE user_id = ?").get(req.user.id);
+  if (!client) {
+    return res
+      .status(400)
+      .json({ error: "No client profile is linked to your account yet - please contact the front desk." });
+  }
+
+  if (hasConflict({ therapist_id, start_time, end_time })) {
+    return res.status(409).json({ error: "Sorry, that slot was just taken. Please pick another." });
+  }
+
+  const info = db
+    .prepare(
+      `INSERT INTO appointments (client_id, therapist_id, service_type, start_time, end_time, status, created_by)
+       VALUES (?, ?, ?, ?, ?, 'confirmed', ?)`
+    )
+    .run(client.id, therapist_id, service_type, start_time, end_time, req.user.id);
+
+  const appt = db.prepare(withDetails + " WHERE a.id = ?").get(info.lastInsertRowid);
+
+  sendSMS({
+    to: appt.guardian_phone,
+    appointmentId: appt.id,
+    message: `You're booked! ${appt.service_type} with ${appt.therapist_name} on ${appt.start_time}. See you then!`,
+  }).catch(() => {});
+
+  res.status(201).json(appt);
+});
+
 // POST /api/appointments  (admin/therapist)
 router.post("/", requireAuth, requireRole("admin", "therapist"), (req, res) => {
   const { client_id, therapist_id, service_type, start_time, end_time, notes } = req.body || {};

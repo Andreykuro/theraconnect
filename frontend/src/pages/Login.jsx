@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
-import { Stethoscope } from "lucide-react";
+import { useNavigate, Navigate, Link } from "react-router-dom";
+import { Stethoscope, ArrowLeft } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const DEMO_ACCOUNTS = [
@@ -41,6 +41,14 @@ export default function Login() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-chalk px-4">
       <div className="w-full max-w-sm">
+        <Link
+          to="/"
+          className="mb-6 flex items-center gap-1.5 text-sm font-medium text-mist transition hover:text-harbor"
+        >
+          <ArrowLeft size={15} />
+          Back to home
+        </Link>
+
         <div className="mb-8 flex flex-col items-center text-center">
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-harbor text-white">
             <Stethoscope size={22} />
