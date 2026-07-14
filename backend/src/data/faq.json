@@ -1,0 +1,52 @@
+[
+  {
+    "id": "hours",
+    "keywords": ["hour", "open", "close", "time", "schedule today", "operating"],
+    "answer": "TheraFun Intervention Centre is open Monday to Saturday, 8:00 AM to 5:00 PM. We're closed on Sundays and major holidays."
+  },
+  {
+    "id": "services",
+    "keywords": ["service", "offer", "therapy type", "what do you do", "programs"],
+    "answer": "We offer Speech Therapy, Occupational Therapy, Physical Therapy, Special Education tutorial, Playgroup classes, Early Intervention programs, and Childcare services."
+  },
+  {
+    "id": "reschedule",
+    "keywords": ["reschedule", "move my appointment", "change schedule", "change appointment"],
+    "answer": "To reschedule, message the clinic admin or use the Parent Portal's 'Request change' button on the appointment card. Please give at least 24 hours' notice when possible."
+  },
+  {
+    "id": "cancel",
+    "keywords": ["cancel", "can't make it", "cannot attend", "absent"],
+    "answer": "You can cancel a session from the Parent Portal, or reply to the SMS reminder with 'CANCEL'. This frees up the slot for other families."
+  },
+  {
+    "id": "therapist_availability",
+    "keywords": ["therapist available", "which therapist", "assign", "who is my therapist"],
+    "answer": "Your assigned therapist is shown on your child's profile in the Parent Portal, along with their weekly available slots."
+  },
+  {
+    "id": "confirm",
+    "keywords": ["confirm", "how do i confirm", "reply yes"],
+    "answer": "Confirm an upcoming session by tapping 'Confirm attendance' on the appointment card, or by replying YES to the SMS reminder you receive the day before."
+  },
+  {
+    "id": "location",
+    "keywords": ["where", "location", "address", "balanga"],
+    "answer": "TheraFun Intervention Centre is located in Balanga City, Bataan."
+  },
+  {
+    "id": "new_client",
+    "keywords": ["enroll", "sign up", "new client", "register", "intake"],
+    "answer": "New enrollments start with an intake assessment. Message the front desk to schedule one, and our admin will create your child's client profile."
+  },
+  {
+    "id": "announcement",
+    "keywords": ["announcement", "holiday", "promo", "news"],
+    "answer": "Check the Announcements panel on your dashboard for the latest holiday schedules, clinic news, and promos."
+  },
+  {
+    "id": "fallback",
+    "keywords": [],
+    "answer": "I'm not sure about that one yet. You can ask about clinic hours, services, rescheduling, cancelling, or your assigned therapist \u2014 or message the front desk directly."
+  }
+]

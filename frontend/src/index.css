@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-harbor: #146B6B;
+  --color-harbor-dark: #0E4F4F;
+  --color-harbor-light: #DCEBE9;
+  --color-sunrise: #FF7A59;
+  --color-sunrise-light: #FFE3D8;
+  --color-chalk: #FBF8F3;
+  --color-ink: #1E2A2A;
+  --color-mist: #7C8F8D;
+  --color-mist-light: #E4E7E1;
+  --color-amber: #F2A65A;
+  --color-amber-light: #FBEBD8;
+  --color-coral-red: #D65A4A;
+  --color-coral-red-light: #F9E1DD;
+
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-body: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-chalk);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+/* Signature "session card" perforated edge - evokes the clinic's physical
+   appointment card, used on appointment cards throughout the app */
+.session-card {
+  position: relative;
+}
+.session-card::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--color-mist-light) 0,
+    var(--color-mist-light) 4px,
+    transparent 4px,
+    transparent 9px
+  );
+}
+
+.stamp {
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  transform: rotate(-3deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* FullCalendar theme overrides to match palette */
+.tc-calendar .fc {
+  font-family: var(--font-body);
+  --fc-border-color: var(--color-mist-light);
+  --fc-today-bg-color: var(--color-sunrise-light);
+  --fc-neutral-bg-color: var(--color-chalk);
+  --fc-page-bg-color: transparent;
+  --fc-button-bg-color: var(--color-harbor);
+  --fc-button-border-color: var(--color-harbor);
+  --fc-button-hover-bg-color: var(--color-harbor-dark);
+  --fc-button-hover-border-color: var(--color-harbor-dark);
+  --fc-button-active-bg-color: var(--color-harbor-dark);
+}
+.tc-calendar .fc-toolbar-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.tc-calendar .fc-event {
+  border: none;
+  cursor: pointer;
+}

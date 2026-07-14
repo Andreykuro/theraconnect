@@ -1,0 +1,134 @@
+const express = require("express");
+const db = require("../db");
+const { requireAuth, requireRole } = require("../middleware/auth");
+const { sendSMS } = require("../services/notify");
+
+const router = express.Router();
+
+const withDetails = `
+  SELECT a.*, c.name AS client_name, c.guardian_name, c.guardian_phone, c.guardian_email,
+         t.name AS therapist_name, t.color AS therapist_color
+  FROM appointments a
+  JOIN clients c ON c.id = a.client_id
+  JOIN therapists t ON t.id = a.therapist_id
+`;
+
+function hasConflict({ therapist_id, start_time, end_time, excludeId }) {
+  const row = db
+    .prepare(
+      `SELECT COUNT(*) AS n FROM appointments
+       WHERE therapist_id = ? AND status != 'cancelled'
+         AND id != COALESCE(?, -1)
+         AND start_time < ? AND end_time > ?`
+    )
+    .get(therapist_id, excludeId ?? null, end_time, start_time);
+  return row.n > 0;
+}
+
+// GET /api/appointments?start=&end=
+router.get("/", requireAuth, (req, res) => {
+  const { start, end } = req.query;
+  let sql = withDetails + " WHERE 1=1";
+  const params = [];
+
+  if (start) {
+    sql += " AND a.end_time >= ?";
+    params.push(start);
+  }
+  if (end) {
+    sql += " AND a.start_time <= ?";
+    params.push(end);
+  }
+
+  if (req.user.role === "therapist") {
+    sql += " AND a.therapist_id = ?";
+    params.push(req.user.therapist_id);
+  } else if (req.user.role === "parent") {
+    sql += " AND c.user_id = ?";
+    params.push(req.user.id);
+  }
+
+  sql += " ORDER BY a.start_time ASC";
+  res.json(db.prepare(sql).all(...params));
+});
+
+// POST /api/appointments  (admin/therapist)
+router.post("/", requireAuth, requireRole("admin", "therapist"), (req, res) => {
+  const { client_id, therapist_id, service_type, start_time, end_time, notes } = req.body || {};
+  if (!client_id || !therapist_id || !service_type || !start_time || !end_time) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+  if (new Date(start_time) >= new Date(end_time)) {
+    return res.status(400).json({ error: "start_time must be before end_time" });
+  }
+  if (hasConflict({ therapist_id, start_time, end_time })) {
+    return res.status(409).json({ error: "This therapist already has a session in that time slot" });
+  }
+
+  const info = db
+    .prepare(
+      `INSERT INTO appointments (client_id, therapist_id, service_type, start_time, end_time, notes, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(client_id, therapist_id, service_type, start_time, end_time, notes || null, req.user.id);
+
+  const appt = db.prepare(withDetails + " WHERE a.id = ?").get(info.lastInsertRowid);
+
+  sendSMS({
+    to: appt.guardian_phone,
+    appointmentId: appt.id,
+    message: `Hello! Your ${appt.service_type} schedule is on ${appt.start_time}. Kindly confirm if you can attend. Thank you!`,
+  }).catch(() => {});
+
+  res.status(201).json(appt);
+});
+
+// PUT /api/appointments/:id  (admin/therapist) - edit/reschedule
+router.put("/:id", requireAuth, requireRole("admin", "therapist"), (req, res) => {
+  const existing = db.prepare("SELECT * FROM appointments WHERE id = ?").get(req.params.id);
+  if (!existing) return res.status(404).json({ error: "Appointment not found" });
+
+  const therapist_id = req.body.therapist_id ?? existing.therapist_id;
+  const start_time = req.body.start_time ?? existing.start_time;
+  const end_time = req.body.end_time ?? existing.end_time;
+  const service_type = req.body.service_type ?? existing.service_type;
+  const notes = req.body.notes ?? existing.notes;
+
+  if (hasConflict({ therapist_id, start_time, end_time, excludeId: existing.id })) {
+    return res.status(409).json({ error: "This therapist already has a session in that time slot" });
+  }
+
+  db.prepare(
+    `UPDATE appointments SET therapist_id=?, start_time=?, end_time=?, service_type=?, notes=? WHERE id=?`
+  ).run(therapist_id, start_time, end_time, service_type, notes, existing.id);
+
+  const appt = db.prepare(withDetails + " WHERE a.id = ?").get(existing.id);
+
+  sendSMS({
+    to: appt.guardian_phone,
+    appointmentId: appt.id,
+    message: `Hi! Your ${appt.service_type} schedule was updated to ${appt.start_time}. Kindly confirm if you can attend.`,
+  }).catch(() => {});
+
+  res.json(appt);
+});
+
+// POST /api/appointments/:id/confirm  (parent confirms attendance)
+router.post("/:id/confirm", requireAuth, requireRole("parent", "admin"), (req, res) => {
+  const appt = db.prepare("SELECT * FROM appointments WHERE id = ?").get(req.params.id);
+  if (!appt) return res.status(404).json({ error: "Appointment not found" });
+
+  db.prepare("UPDATE appointments SET status = 'confirmed' WHERE id = ?").run(appt.id);
+  res.json(db.prepare(withDetails + " WHERE a.id = ?").get(appt.id));
+});
+
+// DELETE /api/appointments/:id  (admin) - soft cancel
+router.delete("/:id", requireAuth, requireRole("admin", "therapist"), (req, res) => {
+  const appt = db.prepare("SELECT * FROM appointments WHERE id = ?").get(req.params.id);
+  if (!appt) return res.status(404).json({ error: "Appointment not found" });
+
+  db.prepare("UPDATE appointments SET status = 'cancelled' WHERE id = ?").run(appt.id);
+  res.json({ ok: true });
+});
+
+module.exports = router;
