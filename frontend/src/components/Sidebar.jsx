@@ -7,10 +7,11 @@ import {
   ClipboardList,
   LogOut,
   Megaphone,
-  Stethoscope,
   Users,
+  X,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import BrandLogo from "./BrandLogo";
 
 const NAV = {
   admin: [
@@ -31,48 +32,67 @@ const NAV = {
   ],
 };
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate, onClose }) {
   const { user, logout } = useAuth();
   const items = NAV[user.role] || [];
 
   return (
-    <aside className="flex h-screen w-60 flex-shrink-0 flex-col border-r border-mist-light bg-white">
-      <div className="flex items-center gap-2 px-6 py-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-harbor text-white">
-          <Stethoscope size={18} />
+    <aside className="flex h-full w-72 flex-shrink-0 flex-col border-r border-mist-light bg-white lg:w-64">
+      <div className="border-b border-mist-light px-4 pb-4 pt-3">
+        <div className="flex items-start justify-between gap-3">
+          <BrandLogo eager className="h-[78px] w-auto max-w-[182px]" />
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close navigation"
+              className="mt-2 flex h-9 w-9 items-center justify-center rounded-lg text-mist transition hover:bg-harbor-light hover:text-harbor lg:hidden"
+            >
+              <X size={19} />
+            </button>
+          )}
         </div>
-        <div>
-          <p className="font-display text-lg font-semibold leading-none text-ink">TheraConnect</p>
-          <p className="text-[11px] text-mist">TheraFun Intervention Centre</p>
+        <div className="-mt-1 flex items-center justify-between rounded-xl bg-harbor-light px-3 py-2">
+          <div>
+            <p className="text-xs font-bold text-harbor-dark">TheraConnect portal</p>
+            <p className="text-[10px] text-mist">Care management workspace</p>
+          </div>
+          <span className="rounded-full bg-white px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide text-harbor shadow-sm">
+            {user.role}
+          </span>
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3">
+      <nav aria-label="Main navigation" className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
         {items.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
+            onClick={onNavigate}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+              `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${
                 isActive
-                  ? "bg-harbor-light text-harbor-dark"
-                  : "text-mist hover:bg-chalk hover:text-ink"
+                  ? "bg-harbor text-white shadow-sm"
+                  : "text-mist hover:bg-harbor-light hover:text-harbor-dark"
               }`
             }
           >
-            <Icon size={18} />
+            <Icon size={18} strokeWidth={2.2} />
             {label}
           </NavLink>
         ))}
       </nav>
 
-      <div className="border-t border-mist-light px-4 py-4">
+      <div className="border-t border-mist-light bg-chalk/70 px-4 py-4">
         <p className="truncate text-sm font-semibold text-ink">{user.name}</p>
-        <p className="mb-3 text-xs capitalize text-mist">{user.role}</p>
+        <p className="mb-3 text-xs text-mist">Signed in securely</p>
         <button
-          onClick={logout}
-          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-mist transition hover:bg-chalk hover:text-coral-red"
+          onClick={() => {
+            logout();
+            onClose?.();
+          }}
+          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-mist transition hover:bg-coral-red-light hover:text-coral-red"
         >
           <LogOut size={16} />
           Log out

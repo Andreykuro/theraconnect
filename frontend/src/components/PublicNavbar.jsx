@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X, ArrowRight } from "lucide-react";
+import BrandLogo from "./BrandLogo";
 
 const LINKS = [
   { href: "#top", label: "Home" },
@@ -41,10 +42,12 @@ export default function PublicNavbar() {
           scrolled ? "bg-white/90 shadow-sm backdrop-blur-md" : "bg-transparent"
         }`}
       >
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <a href="#top" className="flex items-center gap-2">
-            <img src="/therafun-logo.png" alt="TheraFun Intervention Centre" className="h-10 w-auto" />
-            <span className="font-display text-lg font-semibold text-ink">TheraConnect</span>
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+          <a href="#top" className="flex items-center gap-3" aria-label="TheraFun Intervention Centre home">
+            <BrandLogo eager className="h-12 w-auto sm:h-14" />
+            <span className="hidden rounded-full bg-harbor-light px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-harbor lg:inline">
+              TheraConnect
+            </span>
           </a>
 
           <nav className="hidden items-center gap-8 md:flex">
@@ -71,13 +74,13 @@ export default function PublicNavbar() {
             </button>
             <Link
               to="/enroll"
-              className="hidden rounded-full bg-sunrise px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 sm:inline-flex"
+              className="hidden rounded-full bg-sunrise px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:brightness-110 sm:inline-flex"
             >
               Enroll
             </Link>
             <Link
               to="/login"
-              className="rounded-full bg-harbor px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-harbor-dark"
+              className="rounded-full bg-harbor px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-harbor-dark"
             >
               Login
             </Link>
@@ -98,7 +101,7 @@ export default function PublicNavbar() {
           }`}
         >
           <div className="mb-8 flex items-center justify-between">
-            <img src="/therafun-logo.png" alt="TheraFun Intervention Centre" className="h-9 w-auto" />
+            <BrandLogo eager className="h-16 w-auto" />
             <button onClick={() => setOpen(false)} aria-label="Close menu" className="text-mist hover:text-ink">
               <X size={22} />
             </button>

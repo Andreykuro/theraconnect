@@ -14,6 +14,14 @@ import {
   ArrowRight,
 } from "lucide-react";
 import PublicNavbar from "../components/PublicNavbar";
+import BrandLogo from "../components/BrandLogo";
+
+const SERVICE_TONES = {
+  purple: "bg-harbor-light text-harbor-dark",
+  sky: "bg-therafun-sky-light text-therafun-sky-dark",
+  orange: "bg-sunrise-light text-sunrise",
+  lime: "bg-therafun-lime-light text-therafun-lime-dark",
+};
 
 const SERVICES = [
   {
@@ -21,36 +29,43 @@ const SERVICES = [
     title: "Speech Therapy",
     desc: "One-on-one sessions building articulation, language, and confident communication.",
     featured: true,
+    tone: "purple",
   },
   {
     icon: PuzzleIcon,
     title: "Occupational Therapy",
     desc: "Fine motor and sensory skills for everyday independence.",
+    tone: "sky",
   },
   {
     icon: Activity,
     title: "Physical Therapy",
     desc: "Movement, strength, and coordination support for growing bodies.",
+    tone: "orange",
   },
   {
     icon: BookOpen,
     title: "Special Education Tutorial",
     desc: "Individualized learning plans tailored to each child's pace.",
+    tone: "lime",
   },
   {
     icon: Users,
     title: "Playgroup Classes",
     desc: "Guided peer play that builds social and communication skills.",
+    tone: "purple",
   },
   {
     icon: Sparkles,
     title: "Early Intervention",
     desc: "Targeted support during the years development moves fastest.",
+    tone: "sky",
   },
   {
     icon: Baby,
     title: "Childcare Services",
     desc: "A safe, nurturing space for children while families are away.",
+    tone: "orange",
   },
 ];
 
@@ -90,13 +105,12 @@ export default function Home() {
 
       {/* Hero - logo emphasized front and center */}
       <section className="relative overflow-hidden px-6 pb-20 pt-36 text-center">
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem] bg-gradient-to-b from-harbor-light/70 via-chalk to-chalk" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem] bg-gradient-to-b from-harbor-light via-chalk to-chalk" />
+        <div className="pointer-events-none absolute left-[8%] top-32 -z-10 h-36 w-36 rounded-full bg-therafun-sky/20 blur-2xl" />
+        <div className="pointer-events-none absolute right-[7%] top-44 -z-10 h-44 w-44 rounded-full bg-therafun-lime/20 blur-2xl" />
+        <div className="pointer-events-none absolute right-[24%] top-24 -z-10 h-24 w-24 rounded-full bg-amber/20 blur-xl" />
 
-        <img
-          src="/therafun-logo.png"
-          alt="TheraFun Intervention Centre logo"
-          className="animate-float mx-auto mb-6 h-40 w-auto drop-shadow-sm sm:h-48"
-        />
+        <BrandLogo eager className="animate-float mx-auto mb-6 h-40 w-auto drop-shadow-sm sm:h-48" />
 
         <h1 className="animate-fade-in-up mx-auto max-w-2xl font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">
           Every child deserves to be <span className="text-harbor">heard.</span>
@@ -117,7 +131,7 @@ export default function Home() {
         >
           <Link
             to="/enroll"
-            className="flex items-center gap-2 rounded-full bg-sunrise px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:brightness-105"
+            className="flex items-center gap-2 rounded-full bg-sunrise px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:brightness-110"
           >
             Enroll your child
             <ArrowRight size={16} />
@@ -162,10 +176,10 @@ export default function Home() {
               >
                 <div
                   className={`mb-4 flex h-11 w-11 items-center justify-center rounded-full ${
-                    s.featured ? "bg-white/15" : "bg-harbor-light"
+                    s.featured ? "bg-white/15 text-white" : SERVICE_TONES[s.tone]
                   }`}
                 >
-                  <s.icon size={20} className={s.featured ? "text-white" : "text-harbor-dark"} />
+                  <s.icon size={20} />
                 </div>
                 <h3 className="mb-1 font-display text-lg font-semibold">{s.title}</h3>
                 <p className={`text-sm ${s.featured ? "text-white/85" : "text-mist"}`}>{s.desc}</p>
@@ -205,11 +219,7 @@ export default function Home() {
 
           <Reveal className="relative flex items-center justify-center" style={{ animationDelay: "100ms" }}>
             <div className="absolute -inset-6 -z-10 rounded-[2.5rem] bg-harbor-light" />
-            <img
-              src="/therafun-logo.png"
-              alt="TheraFun Intervention Centre"
-              className="h-56 w-auto sm:h-64"
-            />
+            <BrandLogo className="h-56 w-auto sm:h-64" />
           </Reveal>
         </div>
       </section>

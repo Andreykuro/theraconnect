@@ -1,22 +1,30 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-harbor: #146B6B;
-  --color-harbor-dark: #0E4F4F;
-  --color-harbor-light: #DCEBE9;
-  --color-sunrise: #FF7A59;
-  --color-sunrise-light: #FFE3D8;
-  --color-chalk: #FBF8F3;
-  --color-ink: #1E2A2A;
-  --color-mist: #7C8F8D;
-  --color-mist-light: #E4E7E1;
-  --color-amber: #F2A65A;
-  --color-amber-light: #FBEBD8;
-  --color-coral-red: #D65A4A;
-  --color-coral-red-light: #F9E1DD;
+  /* TheraFun brand palette. Existing semantic names stay in place so every
+     portal screen inherits the new identity consistently. */
+  --color-harbor: #6F2C91;
+  --color-harbor-dark: #50206A;
+  --color-harbor-light: #F1E8F6;
+  --color-sunrise: #B84E00;
+  --color-sunrise-light: #FFF0DA;
+  --color-chalk: #FAF9FC;
+  --color-ink: #2D2938;
+  --color-mist: #746F7C;
+  --color-mist-light: #E7E1EA;
+  --color-amber: #F5A623;
+  --color-amber-light: #FFF3D8;
+  --color-coral-red: #B93D4A;
+  --color-coral-red-light: #FBE7EA;
+  --color-therafun-sky: #59BCE8;
+  --color-therafun-sky-dark: #176B91;
+  --color-therafun-sky-light: #E7F6FC;
+  --color-therafun-lime: #C8E72A;
+  --color-therafun-lime-dark: #536A00;
+  --color-therafun-lime-light: #F3F9D7;
 
-  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-display: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --font-body: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
@@ -33,6 +41,20 @@ body {
   background-color: var(--color-chalk);
   color: var(--color-ink);
   font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: var(--color-harbor-light);
+  color: var(--color-harbor-dark);
 }
 
 /* --- Landing page animations --- */
