@@ -7,6 +7,7 @@ import {
   ClipboardList,
   LogOut,
   Megaphone,
+  MessageCircle,
   Users,
   X,
 } from "lucide-react";
@@ -24,10 +25,12 @@ const NAV = {
   therapist: [
     { to: "/therapist", label: "My schedule", icon: CalendarDays, end: true },
     { to: "/therapist/progress", label: "Progress & notes", icon: BarChart3 },
+    { to: "/therapist/messages", label: "Messages", icon: MessageCircle },
   ],
   parent: [
     { to: "/parent", label: "My appointments", icon: CalendarDays, end: true },
     { to: "/parent/progress", label: "Child progress", icon: BarChart3 },
+    { to: "/parent/messages", label: "Messages", icon: MessageCircle },
     { to: "/parent/enrollment", label: "Enrollment", icon: ClipboardList },
   ],
 };

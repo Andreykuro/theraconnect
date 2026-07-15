@@ -11,9 +11,11 @@ import Notifications from "./pages/admin/Notifications";
 import Automation from "./pages/admin/Automation";
 import TherapistDashboard from "./pages/therapist/TherapistDashboard";
 import TherapistProgress from "./pages/therapist/TherapistProgress";
+import TherapistMessages from "./pages/therapist/TherapistMessages";
 import ParentDashboard from "./pages/parent/ParentDashboard";
 import ParentEnrollment from "./pages/parent/ParentEnrollment";
 import ParentProgress from "./pages/parent/ParentProgress";
+import ParentMessages from "./pages/parent/ParentMessages";
 
 function Root() {
   const { user } = useAuth();
@@ -91,6 +93,15 @@ export default function App() {
           />
 
           <Route
+            path="/therapist/messages"
+            element={
+              <ProtectedRoute roles={["therapist"]}>
+                <TherapistMessages />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/parent"
             element={
               <ProtectedRoute roles={["parent"]}>
@@ -111,6 +122,15 @@ export default function App() {
             element={
               <ProtectedRoute roles={["parent"]}>
                 <ParentProgress />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/parent/messages"
+            element={
+              <ProtectedRoute roles={["parent"]}>
+                <ParentMessages />
               </ProtectedRoute>
             }
           />

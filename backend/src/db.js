@@ -144,12 +144,23 @@ CREATE TABLE IF NOT EXISTS notifications_log (
   created_at     TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS messages (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id     INTEGER NOT NULL REFERENCES clients(id),
+  sender_id     INTEGER NOT NULL REFERENCES users(id),
+  sender_role   TEXT NOT NULL CHECK (sender_role IN ('parent','therapist','admin')),
+  body          TEXT NOT NULL,
+  read_at       TEXT,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_appt_therapist_time ON appointments(therapist_id, start_time, end_time);
 CREATE INDEX IF NOT EXISTS idx_appt_client ON appointments(client_id);
 CREATE INDEX IF NOT EXISTS idx_plan_client ON treatment_plans(client_id, status);
 CREATE INDEX IF NOT EXISTS idx_goal_plan ON treatment_goals(plan_id, status);
 CREATE INDEX IF NOT EXISTS idx_note_client_date ON session_notes(client_id, session_date);
 CREATE INDEX IF NOT EXISTS idx_measurement_goal ON goal_measurements(goal_id, recorded_at);
+CREATE INDEX IF NOT EXISTS idx_messages_client_time ON messages(client_id, created_at);
 `;
 
 const wrapper = {};
