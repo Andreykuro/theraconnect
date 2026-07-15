@@ -70,6 +70,12 @@ export default function PublicNavbar() {
               <span className="hidden sm:inline">Menu</span>
             </button>
             <Link
+              to="/enroll"
+              className="hidden rounded-full bg-sunrise px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 sm:inline-flex"
+            >
+              Enroll
+            </Link>
+            <Link
               to="/login"
               className="rounded-full bg-harbor px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-harbor-dark"
             >
@@ -112,6 +118,14 @@ export default function PublicNavbar() {
           </nav>
 
           <div className="mt-auto">
+            <Link
+              to="/enroll"
+              onClick={() => setOpen(false)}
+              className="mb-2 flex items-center justify-center gap-2 rounded-full bg-sunrise px-4 py-3 text-sm font-semibold text-white transition hover:brightness-105"
+            >
+              Enroll your child
+              <ArrowRight size={16} />
+            </Link>
             <Link
               to="/login"
               onClick={() => setOpen(false)}

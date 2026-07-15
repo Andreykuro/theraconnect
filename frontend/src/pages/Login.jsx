@@ -98,6 +98,12 @@ export default function Login() {
               {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
+          <p className="mt-5 border-t border-mist-light pt-4 text-center text-sm text-mist">
+            New parent?{" "}
+            <Link to="/enroll" className="font-semibold text-harbor hover:text-harbor-dark">
+              Enroll your child
+            </Link>
+          </p>
         </div>
 
         <div className="mt-5 rounded-xl border border-dashed border-mist-light bg-white/60 p-4">

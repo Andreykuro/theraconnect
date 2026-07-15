@@ -11,6 +11,7 @@ async function main() {
                    // sees a fully-initialized database.
 
   const authRoutes = require("./routes/auth");
+  const enrollmentRoutes = require("./routes/enrollment");
   const appointmentRoutes = require("./routes/appointments");
   const clientRoutes = require("./routes/clients");
   const therapistRoutes = require("./routes/therapists");
@@ -27,6 +28,7 @@ async function main() {
   app.get("/api/health", (req, res) => res.json({ ok: true, service: "TheraConnect API" }));
 
   app.use("/api/auth", authRoutes);
+  app.use("/api/enrollment", enrollmentRoutes);
   app.use("/api/appointments", appointmentRoutes);
   app.use("/api/clients", clientRoutes);
   app.use("/api/therapists", therapistRoutes);

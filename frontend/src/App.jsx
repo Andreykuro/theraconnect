@@ -3,12 +3,14 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import Enrollment from "./pages/Enrollment";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import Clients from "./pages/admin/Clients";
 import Announcements from "./pages/admin/Announcements";
 import Notifications from "./pages/admin/Notifications";
 import TherapistDashboard from "./pages/therapist/TherapistDashboard";
 import ParentDashboard from "./pages/parent/ParentDashboard";
+import ParentEnrollment from "./pages/parent/ParentEnrollment";
 
 function Root() {
   const { user } = useAuth();
@@ -23,6 +25,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Root />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/enroll" element={<Enrollment />} />
 
           <Route
             path="/admin"
@@ -71,6 +74,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={["parent"]}>
                 <ParentDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/parent/enrollment"
+            element={
+              <ProtectedRoute roles={["parent"]}>
+                <ParentEnrollment />
               </ProtectedRoute>
             }
           />

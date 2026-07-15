@@ -116,11 +116,17 @@ export default function Home() {
           style={{ animationDelay: "220ms" }}
         >
           <Link
-            to="/login"
+            to="/enroll"
             className="flex items-center gap-2 rounded-full bg-sunrise px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:brightness-105"
           >
-            Book a session
+            Enroll your child
             <ArrowRight size={16} />
+          </Link>
+          <Link
+            to="/login"
+            className="rounded-full border border-harbor/20 bg-white px-6 py-3 text-sm font-semibold text-harbor-dark transition hover:bg-harbor-light"
+          >
+            Parent login
           </Link>
           <a
             href="#about"

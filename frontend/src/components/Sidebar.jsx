@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { CalendarDays, Users, Megaphone, Bell, Stethoscope, LogOut } from "lucide-react";
+import { CalendarDays, Users, Megaphone, Bell, ClipboardList, Stethoscope, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const NAV = {
@@ -10,7 +10,10 @@ const NAV = {
     { to: "/admin/notifications", label: "Notification log", icon: Bell },
   ],
   therapist: [{ to: "/therapist", label: "My schedule", icon: CalendarDays, end: true }],
-  parent: [{ to: "/parent", label: "My appointments", icon: CalendarDays, end: true }],
+  parent: [
+    { to: "/parent", label: "My appointments", icon: CalendarDays, end: true },
+    { to: "/parent/enrollment", label: "Enrollment", icon: ClipboardList },
+  ],
 };
 
 export default function Sidebar() {

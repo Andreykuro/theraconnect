@@ -17,6 +17,14 @@ export function AuthProvider({ children }) {
     return data.user;
   }, []);
 
+  const enroll = useCallback(async (details) => {
+    const { data } = await api.post("/enrollment", details);
+    localStorage.setItem("tc_token", data.token);
+    localStorage.setItem("tc_user", JSON.stringify(data.user));
+    setUser(data.user);
+    return data;
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem("tc_token");
     localStorage.removeItem("tc_user");
@@ -24,7 +32,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, enroll, logout }}>
       {children}
     </AuthContext.Provider>
   );
