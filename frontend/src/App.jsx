@@ -8,9 +8,12 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import Clients from "./pages/admin/Clients";
 import Announcements from "./pages/admin/Announcements";
 import Notifications from "./pages/admin/Notifications";
+import Automation from "./pages/admin/Automation";
 import TherapistDashboard from "./pages/therapist/TherapistDashboard";
+import TherapistProgress from "./pages/therapist/TherapistProgress";
 import ParentDashboard from "./pages/parent/ParentDashboard";
 import ParentEnrollment from "./pages/parent/ParentEnrollment";
+import ParentProgress from "./pages/parent/ParentProgress";
 
 function Root() {
   const { user } = useAuth();
@@ -61,10 +64,28 @@ export default function App() {
           />
 
           <Route
+            path="/admin/automation"
+            element={
+              <ProtectedRoute roles={["admin"]}>
+                <Automation />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/therapist"
             element={
               <ProtectedRoute roles={["therapist"]}>
                 <TherapistDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/therapist/progress"
+            element={
+              <ProtectedRoute roles={["therapist"]}>
+                <TherapistProgress />
               </ProtectedRoute>
             }
           />
@@ -82,6 +103,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={["parent"]}>
                 <ParentEnrollment />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/parent/progress"
+            element={
+              <ProtectedRoute roles={["parent"]}>
+                <ParentProgress />
               </ProtectedRoute>
             }
           />

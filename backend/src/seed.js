@@ -11,6 +11,11 @@ async function main() {
 
   const wipe = db.transaction(() => {
     db.exec(`
+      DELETE FROM goal_measurements;
+      DELETE FROM session_notes;
+      DELETE FROM treatment_goals;
+      DELETE FROM treatment_plans;
+      DELETE FROM ai_audit_logs;
       DELETE FROM notifications_log;
       DELETE FROM appointments;
       DELETE FROM announcements;
@@ -33,8 +38,20 @@ async function main() {
     const insertUser = db.prepare(
       "INSERT INTO users (email, password_hash, role, name, therapist_id) VALUES (?, ?, ?, ?, ?)"
     );
-    insertUser.run("admin@theraconnect.ph", hash("admin123"), "admin", "Front Desk Admin", null);
-    insertUser.run("anna@theraconnect.ph", hash("therapist123"), "therapist", "Anna Reyes", t1.lastInsertRowid);
+    const adminUser = insertUser.run(
+      "admin@theraconnect.ph",
+      hash("admin123"),
+      "admin",
+      "Front Desk Admin",
+      null
+    );
+    const annaUser = insertUser.run(
+      "anna@theraconnect.ph",
+      hash("therapist123"),
+      "therapist",
+      "Anna Reyes",
+      t1.lastInsertRowid
+    );
     insertUser.run("ben@theraconnect.ph", hash("therapist123"), "therapist", "Ben Cruz", t2.lastInsertRowid);
     const parentUser = insertUser.run(
       "parent1@theraconnect.ph",
@@ -59,7 +76,7 @@ async function main() {
       parentUser.lastInsertRowid,
       "Working on articulation of /r/ and /s/ sounds."
     );
-    insertClient.run(
+    const c2 = insertClient.run(
       "Sofia Santos",
       "2020-07-02",
       "Occupational Therapy",
@@ -70,7 +87,7 @@ async function main() {
       null,
       "Fine motor skills development."
     );
-    insertClient.run(
+    const c3 = insertClient.run(
       "Ella Ramos",
       "2018-11-20",
       "Physical Therapy",
@@ -95,6 +112,13 @@ async function main() {
       return d.toISOString();
     }
 
+    function daysAgo(days) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - days);
+      d.setHours(10, 0, 0, 0);
+      return d.toISOString();
+    }
+
     insertAppt.run(
       c1.lastInsertRowid,
       t1.lastInsertRowid,
@@ -114,7 +138,7 @@ async function main() {
       "Follow-up session"
     );
     insertAppt.run(
-      2,
+      c2.lastInsertRowid,
       t2.lastInsertRowid,
       "Occupational Therapy",
       atHour(2, 13, 0),
@@ -123,7 +147,7 @@ async function main() {
       null
     );
     insertAppt.run(
-      3,
+      c3.lastInsertRowid,
       t3.lastInsertRowid,
       "Physical Therapy",
       atHour(3, 10, 30),
@@ -132,13 +156,114 @@ async function main() {
       null
     );
 
+    const plan = db
+      .prepare(
+        `INSERT INTO treatment_plans (client_id, therapist_id, title, start_date, created_by)
+         VALUES (?, ?, ?, ?, ?)`
+      )
+      .run(
+        c1.lastInsertRowid,
+        t1.lastInsertRowid,
+        "Speech Therapy Treatment Plan",
+        daysAgo(30).slice(0, 10),
+        annaUser.lastInsertRowid
+      );
+
+    const insertGoal = db.prepare(
+      `INSERT INTO treatment_goals
+         (plan_id, title, description, metric_type, baseline, target, direction, unit)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    const speechGoal = insertGoal.run(
+      plan.lastInsertRowid,
+      "Produce /s/ sounds in words",
+      "Produce the target sound independently during structured picture-card activities.",
+      "accuracy",
+      40,
+      80,
+      "increase",
+      "%"
+    );
+    const promptGoal = insertGoal.run(
+      plan.lastInsertRowid,
+      "Reduce verbal prompting",
+      "Complete articulation practice with fewer therapist prompts.",
+      "frequency",
+      8,
+      2,
+      "decrease",
+      "prompts"
+    );
+
+    const insertNote = db.prepare(
+      `INSERT INTO session_notes
+         (client_id, therapist_id, session_date, intervention, assessment, plan,
+          parent_summary, source, approved_by, approved_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'manual', ?, ?)`
+    );
+    const insertMeasurement = db.prepare(
+      `INSERT INTO goal_measurements (goal_id, session_note_id, value, assistance_level, observation)
+       VALUES (?, ?, ?, ?, ?)`
+    );
+    const demoSessions = [
+      {
+        days: 21,
+        accuracy: 45,
+        prompts: 7,
+        assessment: "Miguel produced the target sound with 45% accuracy and benefited from frequent verbal models.",
+        summary: "Miguel practiced /s/ sounds using picture cards and responded well to verbal models.",
+      },
+      {
+        days: 14,
+        accuracy: 55,
+        prompts: 5,
+        assessment: "Accuracy increased to 55% with fewer verbal prompts across the structured task.",
+        summary: "Miguel showed improved consistency with /s/ sounds and needed fewer reminders this session.",
+      },
+      {
+        days: 7,
+        accuracy: 65,
+        prompts: 3,
+        assessment: "Miguel reached 65% accuracy and completed the task with three verbal prompts.",
+        summary: "Miguel continued making steady progress and completed more /s/ sound practice independently.",
+      },
+    ];
+    for (const session of demoSessions) {
+      const sessionDate = daysAgo(session.days);
+      const note = insertNote.run(
+        c1.lastInsertRowid,
+        t1.lastInsertRowid,
+        sessionDate,
+        "Structured articulation practice using picture cards, modeling, and short word repetitions.",
+        session.assessment,
+        "Continue /s/ sound practice and gradually reduce verbal prompting.",
+        session.summary,
+        annaUser.lastInsertRowid,
+        sessionDate
+      );
+      insertMeasurement.run(
+        speechGoal.lastInsertRowid,
+        note.lastInsertRowid,
+        session.accuracy,
+        "minimal",
+        "Accuracy during structured picture-card trials"
+      );
+      insertMeasurement.run(
+        promptGoal.lastInsertRowid,
+        note.lastInsertRowid,
+        session.prompts,
+        "minimal",
+        "Number of verbal prompts during the activity"
+      );
+    }
+
     db.prepare(
       "INSERT INTO announcements (title, body, category, created_by) VALUES (?, ?, ?, ?)"
     ).run(
       "Clinic closed for Bataan Day",
       "TheraFun Intervention Centre will be closed on April 9 in observance of Araw ng Kagitingan. Sessions on that day will be rescheduled; the front desk will reach out individually.",
       "holiday",
-      1
+      adminUser.lastInsertRowid
     );
   });
 

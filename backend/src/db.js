@@ -61,6 +61,70 @@ CREATE TABLE IF NOT EXISTS appointments (
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS treatment_plans (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id     INTEGER NOT NULL REFERENCES clients(id),
+  therapist_id  INTEGER REFERENCES therapists(id),
+  title         TEXT NOT NULL DEFAULT 'Individual Treatment Plan',
+  start_date    TEXT NOT NULL,
+  status        TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','paused','completed')),
+  created_by    INTEGER REFERENCES users(id),
+  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS treatment_goals (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  plan_id       INTEGER NOT NULL REFERENCES treatment_plans(id),
+  title         TEXT NOT NULL,
+  description   TEXT,
+  metric_type   TEXT NOT NULL DEFAULT 'accuracy' CHECK (metric_type IN ('accuracy','frequency','duration','rating','assistance')),
+  baseline      REAL NOT NULL,
+  target        REAL NOT NULL,
+  direction     TEXT NOT NULL DEFAULT 'increase' CHECK (direction IN ('increase','decrease')),
+  unit          TEXT NOT NULL DEFAULT '%',
+  status        TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','achieved','paused')),
+  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS session_notes (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id       INTEGER NOT NULL REFERENCES clients(id),
+  therapist_id    INTEGER NOT NULL REFERENCES therapists(id),
+  appointment_id  INTEGER REFERENCES appointments(id),
+  session_date    TEXT NOT NULL,
+  subjective      TEXT,
+  intervention    TEXT NOT NULL,
+  assessment      TEXT NOT NULL,
+  plan            TEXT,
+  parent_summary  TEXT NOT NULL,
+  raw_notes       TEXT,
+  source          TEXT NOT NULL DEFAULT 'manual' CHECK (source IN ('manual','assisted')),
+  approved_by     INTEGER NOT NULL REFERENCES users(id),
+  approved_at     TEXT NOT NULL,
+  created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS goal_measurements (
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  goal_id           INTEGER NOT NULL REFERENCES treatment_goals(id),
+  session_note_id   INTEGER NOT NULL REFERENCES session_notes(id),
+  value             REAL NOT NULL,
+  assistance_level  TEXT,
+  observation       TEXT,
+  recorded_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS ai_audit_logs (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id         INTEGER REFERENCES users(id),
+  action          TEXT NOT NULL,
+  provider        TEXT NOT NULL DEFAULT 'local',
+  input_redacted  TEXT,
+  output_text     TEXT,
+  status          TEXT NOT NULL DEFAULT 'completed',
+  created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS announcements (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
   title       TEXT NOT NULL,
@@ -82,6 +146,10 @@ CREATE TABLE IF NOT EXISTS notifications_log (
 
 CREATE INDEX IF NOT EXISTS idx_appt_therapist_time ON appointments(therapist_id, start_time, end_time);
 CREATE INDEX IF NOT EXISTS idx_appt_client ON appointments(client_id);
+CREATE INDEX IF NOT EXISTS idx_plan_client ON treatment_plans(client_id, status);
+CREATE INDEX IF NOT EXISTS idx_goal_plan ON treatment_goals(plan_id, status);
+CREATE INDEX IF NOT EXISTS idx_note_client_date ON session_notes(client_id, session_date);
+CREATE INDEX IF NOT EXISTS idx_measurement_goal ON goal_measurements(goal_id, recorded_at);
 `;
 
 const wrapper = {};

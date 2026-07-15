@@ -1,5 +1,15 @@
 import { NavLink } from "react-router-dom";
-import { CalendarDays, Users, Megaphone, Bell, ClipboardList, Stethoscope, LogOut } from "lucide-react";
+import {
+  BarChart3,
+  Bell,
+  BrainCircuit,
+  CalendarDays,
+  ClipboardList,
+  LogOut,
+  Megaphone,
+  Stethoscope,
+  Users,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const NAV = {
@@ -8,10 +18,15 @@ const NAV = {
     { to: "/admin/clients", label: "Clients", icon: Users },
     { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
     { to: "/admin/notifications", label: "Notification log", icon: Bell },
+    { to: "/admin/automation", label: "Automation center", icon: BrainCircuit },
   ],
-  therapist: [{ to: "/therapist", label: "My schedule", icon: CalendarDays, end: true }],
+  therapist: [
+    { to: "/therapist", label: "My schedule", icon: CalendarDays, end: true },
+    { to: "/therapist/progress", label: "Progress & notes", icon: BarChart3 },
+  ],
   parent: [
     { to: "/parent", label: "My appointments", icon: CalendarDays, end: true },
+    { to: "/parent/progress", label: "Child progress", icon: BarChart3 },
     { to: "/parent/enrollment", label: "Enrollment", icon: ClipboardList },
   ],
 };
