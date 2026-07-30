@@ -1,17 +1,17 @@
 import { Link } from "react-router-dom";
 import {
-  MessageCircle,
-  PuzzleIcon,
-  Activity,
-  BookOpen,
   Users,
-  Sparkles,
   Baby,
+  Palette,
+  Music,
+  Sun,
+  Star,
   MapPin,
   Clock,
   Phone,
   ArrowRight,
-  Blocks,
+  ArrowLeft,
+  MessageCircle,
 } from "lucide-react";
 import PublicNavbar from "../components/PublicNavbar";
 import BrandLogo from "../components/BrandLogo";
@@ -26,75 +26,80 @@ const SERVICE_TONES = {
 
 const SERVICES = [
   {
-    icon: MessageCircle,
-    title: "Speech Therapy",
-    desc: "One-on-one sessions building articulation, language, and confident communication.",
+    icon: Users,
+    title: "Playgroup Classes",
+    desc: "Guided peer play that builds friendships, sharing, and communication skills.",
     featured: true,
     tone: "purple",
   },
   {
-    icon: PuzzleIcon,
-    title: "Occupational Therapy",
-    desc: "Fine motor and sensory skills for everyday independence.",
-    tone: "sky",
-  },
-  {
-    icon: Activity,
-    title: "Physical Therapy",
-    desc: "Movement, strength, and coordination support for growing bodies.",
+    icon: Baby,
+    title: "Daycare / Childcare",
+    desc: "A safe, nurturing space with caring staff on hand while families are away.",
     tone: "orange",
   },
   {
-    icon: BookOpen,
-    title: "Special Education Tutorial",
-    desc: "Individualized learning plans tailored to each child's pace.",
+    icon: Palette,
+    title: "Creative Play & Arts",
+    desc: "Painting, crafts, and imaginative play that build fine motor skills and expression.",
     tone: "lime",
   },
   {
-    icon: Users,
-    title: "Playgroup Classes",
-    desc: "Guided peer play that builds social and communication skills.",
-    tone: "purple",
-  },
-  {
-    icon: Sparkles,
-    title: "Early Intervention",
-    desc: "Targeted support during the years development moves fastest.",
+    icon: Music,
+    title: "Music & Movement",
+    desc: "Songs, dancing, and rhythm games that build coordination and confidence.",
     tone: "sky",
   },
   {
-    icon: Baby,
-    title: "Childcare Services",
-    desc: "A safe, nurturing space for children while families are away.",
+    icon: Sun,
+    title: "Outdoor & Active Play",
+    desc: "Supervised outdoor time for fresh air, energy, and gross motor development.",
     tone: "orange",
+  },
+  {
+    icon: Star,
+    title: "School Readiness",
+    desc: "Early routines, letters, numbers, and social skills for that first classroom.",
+    tone: "purple",
   },
 ];
 
-export default function Home() {
+export default function PlayHome() {
   return (
     <div id="top" className="min-h-screen bg-chalk">
       <PublicNavbar />
 
-      {/* Hero - logo emphasized front and center */}
+      {/* Hero */}
       <section className="relative overflow-hidden px-6 pb-20 pt-36 text-center">
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem] bg-gradient-to-b from-harbor-light via-chalk to-chalk" />
-        <div className="pointer-events-none absolute left-[8%] top-32 -z-10 h-36 w-36 rounded-full bg-therafun-sky/20 blur-2xl" />
-        <div className="pointer-events-none absolute right-[7%] top-44 -z-10 h-44 w-44 rounded-full bg-therafun-lime/20 blur-2xl" />
-        <div className="pointer-events-none absolute right-[24%] top-24 -z-10 h-24 w-24 rounded-full bg-amber/20 blur-xl" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem] bg-gradient-to-b from-therafun-lime-light via-chalk to-chalk" />
+        <div className="pointer-events-none absolute left-[8%] top-32 -z-10 h-36 w-36 rounded-full bg-sunrise/20 blur-2xl" />
+        <div className="pointer-events-none absolute right-[7%] top-44 -z-10 h-44 w-44 rounded-full bg-therafun-sky/20 blur-2xl" />
+        <div className="pointer-events-none absolute right-[24%] top-24 -z-10 h-24 w-24 rounded-full bg-therafun-lime/20 blur-xl" />
+
+        <Link
+          to="/"
+          className="mx-auto mb-6 flex w-fit items-center gap-1.5 rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-mist shadow-sm ring-1 ring-mist-light transition hover:text-harbor"
+        >
+          <ArrowLeft size={13} />
+          Looking for speech therapy instead?
+        </Link>
 
         <BrandLogo eager className="animate-float mx-auto mb-6 h-40 w-auto drop-shadow-sm sm:h-48" />
 
+        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-therafun-sky-dark">
+          TheraFun Play
+        </p>
         <h1 className="animate-fade-in-up mx-auto max-w-2xl font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">
-          Every child deserves to be <span className="text-harbor">heard.</span>
+          Where every day is <span className="text-therafun-sky-dark">playtime.</span>
         </h1>
 
         <p
           className="animate-fade-in-up mx-auto mt-5 max-w-xl text-base text-mist sm:text-lg"
           style={{ animationDelay: "120ms" }}
         >
-          TheraFun Intervention Centre helps children build the speech and language skills to
-          confidently connect with the people around them — through warm, individualized speech
-          therapy in Balanga City, Bataan since 2011.
+          TheraFun Play is our joyful daycare and playgroup program in Balanga City, Bataan —
+          where kids build friendships and everyday skills through guided play, separate from our
+          therapy services but backed by the same trusted team since 2011.
         </p>
 
         <div
@@ -105,7 +110,7 @@ export default function Home() {
             to="/enroll"
             className="flex items-center gap-2 rounded-full bg-sunrise px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:brightness-110"
           >
-            Enroll your child
+            Enroll for playgroup
             <ArrowRight size={16} />
           </Link>
           <Link
@@ -118,7 +123,7 @@ export default function Home() {
             href="#about"
             className="rounded-full border border-mist-light bg-white px-6 py-3 text-sm font-semibold text-ink transition hover:bg-harbor-light"
           >
-            Learn about our centre
+            Learn more
           </a>
         </div>
       </section>
@@ -131,7 +136,7 @@ export default function Home() {
               What we offer
             </p>
             <h2 className="font-display text-3xl font-semibold text-ink">
-              Support that grows with every child
+              Play that helps every child grow
             </h2>
           </Reveal>
 
@@ -142,7 +147,7 @@ export default function Home() {
                 style={{ animationDelay: `${i * 70}ms` }}
                 className={`rounded-2xl p-6 shadow-sm ring-1 transition hover:-translate-y-1 hover:shadow-md ${
                   s.featured
-                    ? "bg-harbor text-white ring-harbor"
+                    ? "bg-therafun-sky text-white ring-therafun-sky"
                     : "bg-white text-ink ring-mist-light"
                 }`}
               >
@@ -161,64 +166,35 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TheraFun Play promo */}
-      <section className="px-6 py-4">
-        <Reveal className="mx-auto max-w-6xl overflow-hidden rounded-3xl bg-gradient-to-br from-therafun-sky via-therafun-sky to-therafun-lime">
-          <div className="flex flex-col items-center gap-6 p-8 text-center sm:p-10 lg:flex-row lg:items-center lg:justify-between lg:text-left">
-            <div className="lg:max-w-lg">
-              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-white/80">
-                A different kind of program
-              </p>
-              <h2 className="font-display text-2xl font-semibold text-white sm:text-3xl">
-                Just here for daycare or playgroup? Meet TheraFun Play.
-              </h2>
-              <p className="mt-3 text-sm text-white/90 sm:text-base">
-                Our joyful, everyday space for childcare and guided playgroup classes — separate
-                from our therapy programs, same trusted TheraFun team.
-              </p>
-            </div>
-            <Link
-              to="/play"
-              className="flex flex-shrink-0 items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-harbor-dark shadow-sm transition hover:brightness-95"
-            >
-              <Blocks size={18} />
-              Explore TheraFun Play
-              <ArrowRight size={16} />
-            </Link>
-          </div>
-        </Reveal>
-      </section>
-
       {/* About Us */}
       <section id="about" className="bg-white px-6 py-20">
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-2">
           <Reveal>
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-sunrise">
-              About us
+              About TheraFun Play
             </p>
             <h2 className="mb-4 font-display text-3xl font-semibold text-ink">
-              Fifteen years of helping children in Bataan find their voice
+              A joyful space to play, connect, and grow
             </h2>
             <p className="mb-4 text-mist">
-              TheraFun Intervention Centre was founded in Balanga City in 2011 to give local
-              families access to dedicated speech-language pathology and developmental therapy,
-              without needing to travel to Manila for care.
+              TheraFun Play launched alongside our Intervention Centre in Balanga City in 2011,
+              built for families who simply want a caring, structured space for their child to
+              play and socialize — no therapy referral needed.
             </p>
             <p className="mb-6 text-mist">
-              Today our therapists work with over a hundred children each week across speech,
-              occupational, and physical therapy, special education tutorials, playgroup classes,
-              and early intervention — every plan built around the child in front of us, not a
-              one-size-fits-all script.
+              Our playgroup and daycare staff use the same warm, individualized approach as our
+              therapy programs, so if a need for extra support ever comes up, our team is right
+              there to help guide the next step.
             </p>
             <div className="grid grid-cols-3 gap-4">
               <Stat value="2011" label="Founded" />
-              <Stat value="100+" label="Children weekly" />
-              <Stat value="6" label="Programs offered" />
+              <Stat value="40+" label="Kids weekly" />
+              <Stat value="3" label="Play programs" />
             </div>
           </Reveal>
 
           <Reveal className="relative flex items-center justify-center" style={{ animationDelay: "100ms" }}>
-            <div className="absolute -inset-6 -z-10 rounded-[2.5rem] bg-harbor-light" />
+            <div className="absolute -inset-6 -z-10 rounded-[2.5rem] bg-therafun-lime-light" />
             <BrandLogo className="h-56 w-auto sm:h-64" />
           </Reveal>
         </div>
@@ -226,11 +202,11 @@ export default function Home() {
 
       {/* Contact / footer */}
       <section id="contact" className="px-6 py-16">
-        <Reveal className="mx-auto grid max-w-6xl grid-cols-1 gap-6 rounded-3xl bg-harbor p-10 text-white sm:grid-cols-3">
+        <Reveal className="mx-auto grid max-w-6xl grid-cols-1 gap-6 rounded-3xl bg-therafun-sky p-10 text-white sm:grid-cols-3">
           <div>
             <h3 className="mb-4 font-display text-xl font-semibold">Visit or reach us</h3>
             <p className="text-sm text-white/80">
-              Ready to schedule your child's first session? Our front desk is happy to help.
+              Ready to bring your child in for playgroup or daycare? Our front desk is happy to help.
             </p>
           </div>
           <ContactLine icon={MapPin} text="Balanga City, Bataan, Philippines" />
@@ -240,8 +216,16 @@ export default function Home() {
           </div>
         </Reveal>
 
-        <p className="mt-8 text-center text-xs text-mist">
-          © {new Date().getFullYear()} TheraFun Intervention Centre · TheraConnect
+        <Link
+          to="/"
+          className="mx-auto mt-8 flex w-fit items-center gap-1.5 text-sm font-semibold text-mist transition hover:text-harbor"
+        >
+          <MessageCircle size={14} />
+          Looking for our speech therapy programs? Visit the main TheraConnect site
+        </Link>
+
+        <p className="mt-4 text-center text-xs text-mist">
+          © {new Date().getFullYear()} TheraFun Play · part of TheraFun Intervention Centre
         </p>
       </section>
     </div>
@@ -251,7 +235,7 @@ export default function Home() {
 function Stat({ value, label }) {
   return (
     <div>
-      <p className="font-display text-2xl font-semibold text-harbor-dark">{value}</p>
+      <p className="font-display text-2xl font-semibold text-therafun-sky-dark">{value}</p>
       <p className="text-xs text-mist">{label}</p>
     </div>
   );

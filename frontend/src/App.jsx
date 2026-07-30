@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
+import PlayHome from "./pages/PlayHome";
 import Login from "./pages/Login";
 import Enrollment from "./pages/Enrollment";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -11,11 +12,9 @@ import Notifications from "./pages/admin/Notifications";
 import Automation from "./pages/admin/Automation";
 import TherapistDashboard from "./pages/therapist/TherapistDashboard";
 import TherapistProgress from "./pages/therapist/TherapistProgress";
-import TherapistMessages from "./pages/therapist/TherapistMessages";
 import ParentDashboard from "./pages/parent/ParentDashboard";
 import ParentEnrollment from "./pages/parent/ParentEnrollment";
 import ParentProgress from "./pages/parent/ParentProgress";
-import ParentMessages from "./pages/parent/ParentMessages";
 
 function Root() {
   const { user } = useAuth();
@@ -29,6 +28,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Root />} />
+          <Route path="/play" element={<PlayHome />} />
           <Route path="/login" element={<Login />} />
           <Route path="/enroll" element={<Enrollment />} />
 
@@ -93,15 +93,6 @@ export default function App() {
           />
 
           <Route
-            path="/therapist/messages"
-            element={
-              <ProtectedRoute roles={["therapist"]}>
-                <TherapistMessages />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
             path="/parent"
             element={
               <ProtectedRoute roles={["parent"]}>
@@ -122,15 +113,6 @@ export default function App() {
             element={
               <ProtectedRoute roles={["parent"]}>
                 <ParentProgress />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/parent/messages"
-            element={
-              <ProtectedRoute roles={["parent"]}>
-                <ParentMessages />
               </ProtectedRoute>
             }
           />

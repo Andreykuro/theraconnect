@@ -4,7 +4,10 @@ import { format, parseISO } from "date-fns";
 import {
   CalendarDays,
   CheckCircle2,
+  FileImage,
   HeartHandshake,
+  ImagePlus,
+  Loader2,
   LockKeyhole,
   Mail,
   MessageSquareText,
@@ -19,6 +22,16 @@ export default function ParentEnrollment() {
   const [enrollment, setEnrollment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [attachments, setAttachments] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  function loadAttachments() {
+    api
+      .get("/enrollment/me/attachments")
+      .then(({ data }) => setAttachments(data))
+      .catch(() => {});
+  }
 
   useEffect(() => {
     api
@@ -28,7 +41,28 @@ export default function ParentEnrollment() {
         setError(requestError.response?.data?.error || "We couldn't load your enrollment details.")
       )
       .finally(() => setLoading(false));
+    loadAttachments();
   }, []);
+
+  async function handleAddFiles(event) {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (files.length === 0) return;
+
+    setUploading(true);
+    setUploadError("");
+    try {
+      const formData = new FormData();
+      formData.append("label", "Doctor's note / Diagnosis");
+      files.forEach((file) => formData.append("files", file));
+      await api.post("/enrollment/me/attachments", formData);
+      loadAttachments();
+    } catch (requestError) {
+      setUploadError(requestError.response?.data?.error || "That upload didn't go through. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   return (
     <DashboardLayout
@@ -125,6 +159,44 @@ export default function ParentEnrollment() {
                   note="Clinic news and updates"
                 />
               </div>
+            </section>
+
+            <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-mist-light">
+              <SectionTitle icon={FileImage} title="Doctor's notes & diagnosis" />
+              <div className="flex flex-wrap gap-3">
+                {attachments.map((file) => (
+                  <a
+                    key={file.id}
+                    href={file.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group relative h-20 w-20 overflow-hidden rounded-xl ring-1 ring-mist-light transition hover:ring-harbor"
+                    title={file.original_name}
+                  >
+                    <img src={file.url} alt={file.original_name} className="h-full w-full object-cover" />
+                  </a>
+                ))}
+                <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-mist-light text-mist transition hover:border-harbor hover:text-harbor">
+                  {uploading ? <Loader2 size={18} className="animate-spin" /> : <ImagePlus size={18} />}
+                  <span className="text-[10px] font-semibold">{uploading ? "Uploading" : "Add"}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    disabled={uploading}
+                    onChange={handleAddFiles}
+                  />
+                </label>
+              </div>
+              {attachments.length === 0 && !uploading && (
+                <p className="mt-3 text-sm text-mist">
+                  No images uploaded yet. Add a photo of a doctor's note or diagnosis any time.
+                </p>
+              )}
+              {uploadError && (
+                <p className="mt-3 rounded-xl bg-coral-red-light px-3 py-2 text-sm text-coral-red">{uploadError}</p>
+              )}
             </section>
 
             <div className="flex items-start gap-3 rounded-2xl border border-dashed border-mist-light bg-white/60 p-4 text-sm text-mist">

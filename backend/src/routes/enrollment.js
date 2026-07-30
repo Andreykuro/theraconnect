@@ -1,10 +1,48 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
 const db = require("../db");
 const { requireAuth, requireRole } = require("../middleware/auth");
 
 const router = express.Router();
+
+// --- Attachment uploads (doctor's note / diagnosis images) ---
+const UPLOAD_DIR = path.join(__dirname, "..", "..", "uploads", "enrollment");
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
+const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8MB
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).slice(0, 10);
+      cb(null, `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${ext}`);
+    },
+  }),
+  limits: { fileSize: MAX_FILE_BYTES, files: 5 },
+  fileFilter: (req, file, cb) => {
+    if (!ALLOWED_MIME.has(file.mimetype)) {
+      return cb(new Error("Only image files (JPG, PNG, WEBP, HEIC) are accepted"));
+    }
+    cb(null, true);
+  },
+});
+
+function attachmentsFor(clientId) {
+  return db
+    .prepare(
+      `SELECT id, label, original_name, mime_type, size_bytes, created_at,
+              '/api/uploads/enrollment/' || filename AS url
+       FROM client_attachments WHERE client_id = ? ORDER BY created_at DESC`
+    )
+    .all(clientId);
+}
 
 function text(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -179,6 +217,67 @@ router.get("/me", requireAuth, requireRole("parent"), (req, res) => {
     return res.status(404).json({ error: "No enrollment is linked to this parent account" });
   }
   res.json({ enrollment });
+});
+
+// Parent: attachments linked to their own enrollment (add more any time, e.g.
+// after the initial signup, or a follow-up diagnosis).
+router.get("/me/attachments", requireAuth, requireRole("parent"), (req, res) => {
+  const client = db
+    .prepare("SELECT id FROM clients WHERE user_id = ? ORDER BY id ASC LIMIT 1")
+    .get(req.user.id);
+  if (!client) return res.status(404).json({ error: "No enrollment is linked to this parent account" });
+  res.json(attachmentsFor(client.id));
+});
+
+router.post(
+  "/me/attachments",
+  requireAuth,
+  requireRole("parent"),
+  upload.array("files", 5),
+  (req, res) => {
+    const client = db
+      .prepare("SELECT id FROM clients WHERE user_id = ? ORDER BY id ASC LIMIT 1")
+      .get(req.user.id);
+    if (!client) return res.status(404).json({ error: "No enrollment is linked to this parent account" });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: "Please choose at least one image to upload" });
+    }
+
+    const label = text(req.body?.label) || "Doctor's note";
+    const insertAttachment = db.prepare(
+      `INSERT INTO client_attachments (client_id, label, filename, original_name, mime_type, size_bytes, uploaded_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    );
+    for (const file of req.files) {
+      insertAttachment.run(client.id, label, file.filename, file.originalname, file.mimetype, file.size, req.user.id);
+    }
+    res.status(201).json(attachmentsFor(client.id));
+  }
+);
+
+// Admin/therapist (and the owning parent): view a specific client's attachments.
+// NOTE: must stay below "/me/attachments" above, or Express would treat "me"
+// as a :clientId value here instead.
+router.get("/:clientId/attachments", requireAuth, (req, res) => {
+  const client = db.prepare("SELECT * FROM clients WHERE id = ?").get(req.params.clientId);
+  if (!client) return res.status(404).json({ error: "Client not found" });
+
+  const allowed =
+    req.user.role === "admin" ||
+    (req.user.role === "therapist" && Number(client.therapist_id) === Number(req.user.therapist_id)) ||
+    (req.user.role === "parent" && Number(client.user_id) === Number(req.user.id));
+  if (!allowed) return res.status(403).json({ error: "Forbidden" });
+
+  res.json(attachmentsFor(client.id));
+});
+
+// Friendly error message when multer rejects a file (wrong type / too large)
+// instead of the default unhandled-error 500.
+router.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError || err) {
+    return res.status(400).json({ error: err.message || "Upload failed" });
+  }
+  next();
 });
 
 module.exports = router;

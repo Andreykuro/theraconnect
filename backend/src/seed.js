@@ -17,6 +17,7 @@ async function main() {
       DELETE FROM treatment_plans;
       DELETE FROM ai_audit_logs;
       DELETE FROM notifications_log;
+      DELETE FROM client_attachments;
       DELETE FROM appointments;
       DELETE FROM announcements;
       DELETE FROM clients;
@@ -34,6 +35,7 @@ async function main() {
     const t1 = insertTherapist.run("Therapist Anna Reyes", "Speech Therapy", "#146B6B", "09171234567", "anna@theraconnect.ph");
     const t2 = insertTherapist.run("Therapist Ben Cruz", "Occupational Therapy", "#FF7A59", "09171234568", "ben@theraconnect.ph");
     const t3 = insertTherapist.run("Therapist Cathy Lim", "Physical Therapy", "#3B7DDB", "09171234569", "cathy@theraconnect.ph");
+    const t4 = insertTherapist.run("Coach Dana Reyes", "Playgroup Classes", "#59BCE8", "09171234570", "dana@theraconnect.ph");
 
     const insertUser = db.prepare(
       "INSERT INTO users (email, password_hash, role, name, therapist_id) VALUES (?, ?, ?, ?, ?)"

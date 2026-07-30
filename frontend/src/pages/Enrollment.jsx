@@ -4,10 +4,12 @@ import {
   ArrowLeft,
   Check,
   HeartHandshake,
+  ImagePlus,
   Loader2,
   LockKeyhole,
   MessageSquareText,
   UserRound,
+  X,
 } from "lucide-react";
 import api from "../lib/api";
 import { useAuth } from "../context/AuthContext";
@@ -32,6 +34,7 @@ export default function Enrollment() {
   const { user, enroll } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState(initialForm);
+  const [attachmentFiles, setAttachmentFiles] = useState([]);
   const [options, setOptions] = useState({ treatment_types: [], therapists: [] });
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -74,6 +77,16 @@ export default function Enrollment() {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
+  function addFiles(event) {
+    const selected = Array.from(event.target.files || []);
+    setAttachmentFiles((current) => [...current, ...selected].slice(0, 5));
+    event.target.value = "";
+  }
+
+  function removeFile(index) {
+    setAttachmentFiles((current) => current.filter((_, i) => i !== index));
+  }
+
   function chooseTreatment(serviceType) {
     const firstTherapist = options.therapists.find(
       (therapist) => therapist.specialty === serviceType
@@ -107,6 +120,20 @@ export default function Enrollment() {
         therapist_id: Number(form.therapist_id),
         notes: form.notes,
       });
+
+      if (attachmentFiles.length > 0) {
+        try {
+          const formData = new FormData();
+          formData.append("label", "Doctor's note / Diagnosis");
+          attachmentFiles.forEach((file) => formData.append("files", file));
+          await api.post("/enrollment/me/attachments", formData);
+        } catch {
+          // The account and patient record were already created successfully -
+          // attachments can always be added later from the parent portal, so a
+          // failed upload here shouldn't block enrollment from completing.
+        }
+      }
+
       navigate("/parent/enrollment", { replace: true, state: { justEnrolled: true } });
     } catch (requestError) {
       setError(
@@ -200,6 +227,23 @@ export default function Enrollment() {
                     className={`${fieldClass} resize-none`}
                     placeholder="Development goals, concerns, previous therapy, or relevant notes"
                   />
+                </Field>
+                <Field label="Doctor's note or diagnosis" hint="Optional · images only">
+                  <div className="flex flex-wrap gap-3">
+                    {attachmentFiles.map((file, index) => (
+                      <AttachmentThumb key={`${file.name}-${index}`} file={file} onRemove={() => removeFile(index)} />
+                    ))}
+                    {attachmentFiles.length < 5 && (
+                      <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-mist-light text-mist transition hover:border-harbor hover:text-harbor">
+                        <ImagePlus size={18} />
+                        <span className="text-[10px] font-semibold">Add</span>
+                        <input type="file" accept="image/*" multiple className="hidden" onChange={addFiles} />
+                      </label>
+                    )}
+                  </div>
+                  <p className="mt-1.5 text-[11px] font-normal normal-case tracking-normal text-mist">
+                    Up to 5 images, 8MB each. You can also add these later from your parent portal.
+                  </p>
                 </Field>
               </FormSection>
 
@@ -392,5 +436,29 @@ function Field({ label, hint, required, children }) {
       </span>
       {children}
     </label>
+  );
+}
+
+function AttachmentThumb({ file, onRemove }) {
+  const [url, setUrl] = useState("");
+
+  useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  return (
+    <div className="group relative h-20 w-20 overflow-hidden rounded-xl ring-1 ring-mist-light">
+      {url && <img src={url} alt={file.name} className="h-full w-full object-cover" />}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink/70 text-white opacity-0 transition group-hover:opacity-100"
+        aria-label={`Remove ${file.name}`}
+      >
+        <X size={12} />
+      </button>
+    </div>
   );
 }
