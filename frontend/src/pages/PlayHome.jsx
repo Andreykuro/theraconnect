@@ -16,6 +16,7 @@ import {
 import PublicNavbar from "../components/PublicNavbar";
 import BrandLogo from "../components/BrandLogo";
 import Reveal from "../components/Reveal";
+import useHeroIntro from "../hooks/useHeroIntro";
 
 const SERVICE_TONES = {
   purple: "bg-harbor-light text-harbor-dark",
@@ -65,12 +66,14 @@ const SERVICES = [
 ];
 
 export default function PlayHome() {
+  const heroRef = useHeroIntro();
+
   return (
     <div id="top" className="min-h-screen bg-chalk">
       <PublicNavbar />
 
       {/* Hero */}
-      <section className="relative overflow-hidden px-6 pb-20 pt-36 text-center">
+      <section ref={heroRef} className="relative overflow-hidden px-6 pb-20 pt-36 text-center">
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem] bg-gradient-to-b from-therafun-lime-light via-chalk to-chalk" />
         <div className="pointer-events-none absolute left-[8%] top-32 -z-10 h-36 w-36 rounded-full bg-sunrise/20 blur-2xl" />
         <div className="pointer-events-none absolute right-[7%] top-44 -z-10 h-44 w-44 rounded-full bg-therafun-sky/20 blur-2xl" />
@@ -84,28 +87,24 @@ export default function PlayHome() {
           Looking for speech therapy instead?
         </Link>
 
-        <BrandLogo eager className="animate-float mx-auto mb-6 h-40 w-auto drop-shadow-sm sm:h-48" />
+        <div className="hero-logo mx-auto mb-6 w-fit">
+          <BrandLogo eager className="animate-float h-40 w-auto drop-shadow-sm sm:h-48" />
+        </div>
 
-        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-therafun-sky-dark">
+        <p className="hero-heading mb-3 text-xs font-bold uppercase tracking-widest text-therafun-sky-dark">
           TheraFun Play
         </p>
-        <h1 className="animate-fade-in-up mx-auto max-w-2xl font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">
+        <h1 className="hero-heading mx-auto max-w-2xl font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">
           Where every day is <span className="text-therafun-sky-dark">playtime.</span>
         </h1>
 
-        <p
-          className="animate-fade-in-up mx-auto mt-5 max-w-xl text-base text-mist sm:text-lg"
-          style={{ animationDelay: "120ms" }}
-        >
+        <p className="hero-sub mx-auto mt-5 max-w-xl text-base text-mist sm:text-lg">
           TheraFun Play is our joyful daycare and playgroup program in Balanga City, Bataan —
           where kids build friendships and everyday skills through guided play, separate from our
           therapy services but backed by the same trusted team since 2011.
         </p>
 
-        <div
-          className="animate-fade-in-up mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row"
-          style={{ animationDelay: "220ms" }}
-        >
+        <div className="hero-cta mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             to="/enroll"
             className="flex items-center gap-2 rounded-full bg-sunrise px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:brightness-110"
@@ -144,7 +143,7 @@ export default function PlayHome() {
             {SERVICES.map((s, i) => (
               <Reveal
                 key={s.title}
-                style={{ animationDelay: `${i * 70}ms` }}
+                delay={i * 70}
                 className={`rounded-2xl p-6 shadow-sm ring-1 transition hover:-translate-y-1 hover:shadow-md ${
                   s.featured
                     ? "bg-therafun-sky text-white ring-therafun-sky"
@@ -193,7 +192,7 @@ export default function PlayHome() {
             </div>
           </Reveal>
 
-          <Reveal className="relative flex items-center justify-center" style={{ animationDelay: "100ms" }}>
+          <Reveal className="relative flex items-center justify-center" delay={100}>
             <div className="absolute -inset-6 -z-10 rounded-[2.5rem] bg-therafun-lime-light" />
             <BrandLogo className="h-56 w-auto sm:h-64" />
           </Reveal>

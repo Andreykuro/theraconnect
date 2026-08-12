@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X, ArrowRight } from "lucide-react";
+import { animate, stagger, spring } from "animejs";
 import BrandLogo from "./BrandLogo";
+import { prefersReducedMotion } from "../lib/motion";
 
 const LINKS = [
   { href: "#top", label: "Home" },
@@ -18,6 +20,9 @@ const MENU_LINKS = [
 export default function PublicNavbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const backdropRef = useRef(null);
+  const panelRef = useRef(null);
+  const linksRef = useRef(null);
 
   useEffect(() => {
     function onScroll() {
@@ -33,6 +38,36 @@ export default function PublicNavbar() {
     return () => {
       document.body.style.overflow = "";
     };
+  }, [open]);
+
+  useEffect(() => {
+    if (!backdropRef.current || !panelRef.current) return;
+
+    if (prefersReducedMotion()) {
+      backdropRef.current.style.opacity = open ? "1" : "0";
+      panelRef.current.style.transform = open ? "translateX(0%)" : "translateX(100%)";
+      return;
+    }
+
+    if (open) {
+      animate(backdropRef.current, { opacity: [0, 1], duration: 250, ease: "outQuad" });
+      animate(panelRef.current, {
+        translateX: ["100%", "0%"],
+        ease: spring({ bounce: 0.2, duration: 550 }),
+      });
+      if (linksRef.current) {
+        animate(linksRef.current.children, {
+          opacity: [0, 1],
+          translateX: [16, 0],
+          delay: stagger(50, { start: 150 }),
+          duration: 400,
+          ease: "outQuad",
+        });
+      }
+    } else {
+      animate(backdropRef.current, { opacity: [1, 0], duration: 200, ease: "inQuad" });
+      animate(panelRef.current, { translateX: ["0%", "100%"], duration: 300, ease: "inQuad" });
+    }
   }, [open]);
 
   return (
@@ -90,15 +125,18 @@ export default function PublicNavbar() {
 
       {/* Off-canvas menu */}
       <div
-        className={`fixed inset-0 z-50 transition-opacity duration-300 ${
-          open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
-        }`}
+        className={`fixed inset-0 z-50 ${open ? "pointer-events-auto" : "pointer-events-none"}`}
       >
-        <div className="absolute inset-0 bg-ink/50" onClick={() => setOpen(false)} />
         <div
-          className={`absolute right-0 top-0 flex h-full w-full max-w-xs flex-col bg-white p-6 shadow-xl transition-transform duration-300 ${
-            open ? "translate-x-0" : "translate-x-full"
-          }`}
+          ref={backdropRef}
+          className="absolute inset-0 bg-ink/50"
+          style={{ opacity: 0 }}
+          onClick={() => setOpen(false)}
+        />
+        <div
+          ref={panelRef}
+          className="absolute right-0 top-0 flex h-full w-full max-w-xs flex-col bg-white p-6 shadow-xl"
+          style={{ transform: "translateX(100%)" }}
         >
           <div className="mb-8 flex items-center justify-between">
             <BrandLogo eager className="h-16 w-auto" />
@@ -107,7 +145,7 @@ export default function PublicNavbar() {
             </button>
           </div>
 
-          <nav className="flex flex-col gap-1">
+          <nav ref={linksRef} className="flex flex-col gap-1">
             {MENU_LINKS.map((l) => (
               <a
                 key={l.href}

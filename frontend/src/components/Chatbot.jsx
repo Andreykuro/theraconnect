@@ -1,19 +1,85 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
+import { animate, spring } from "animejs";
 import api from "../lib/api";
+import { prefersReducedMotion } from "../lib/motion";
 
 export default function Chatbot() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false); // logical intent (button icon, aria state)
+  const [mounted, setMounted] = useState(false); // whether the panel is actually in the DOM
   const [messages, setMessages] = useState([
     { from: "bot", text: "Hi! Ask me about clinic hours, services, rescheduling, or your therapist." },
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef(null);
+  const panelRef = useRef(null);
+  const bubbleRef = useRef(null);
+  const prevCount = useRef(messages.length);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, open]);
+
+  // Panel entrance, played each time it mounts.
+  useEffect(() => {
+    if (!mounted || !panelRef.current || prefersReducedMotion()) return;
+    animate(panelRef.current, {
+      opacity: [0, 1],
+      scale: [0.9, 1],
+      translateY: [12, 0],
+      ease: spring({ bounce: 0.35, duration: 500 }),
+    });
+  }, [mounted]);
+
+  // Animate only the newest message bubble sliding in, not the whole list.
+  useEffect(() => {
+    if (messages.length > prevCount.current && scrollRef.current && !prefersReducedMotion()) {
+      const last = scrollRef.current.lastElementChild;
+      if (last) {
+        animate(last, {
+          opacity: [0, 1],
+          translateY: [10, 0],
+          scale: [0.96, 1],
+          duration: 350,
+          ease: "outQuad",
+        });
+      }
+    }
+    prevCount.current = messages.length;
+  }, [messages]);
+
+  function toggle() {
+    if (bubbleRef.current && !prefersReducedMotion()) {
+      animate(bubbleRef.current, {
+        scale: [0.85, 1],
+        ease: spring({ bounce: 0.55, duration: 500 }),
+      });
+    }
+
+    if (open) {
+      closeChat();
+    } else {
+      setMounted(true);
+      setOpen(true);
+    }
+  }
+
+  function closeChat() {
+    setOpen(false);
+    if (prefersReducedMotion() || !panelRef.current) {
+      setMounted(false);
+      return;
+    }
+    animate(panelRef.current, {
+      opacity: [1, 0],
+      scale: [1, 0.9],
+      translateY: [0, 12],
+      duration: 180,
+      ease: "inQuad",
+      onComplete: () => setMounted(false),
+    });
+  }
 
   async function send(e) {
     e.preventDefault();
@@ -35,14 +101,17 @@ export default function Chatbot() {
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
-      {open && (
-        <div className="mb-3 flex h-96 w-80 flex-col overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-mist-light">
+      {mounted && (
+        <div
+          ref={panelRef}
+          className="mb-3 flex h-96 w-80 origin-bottom-right flex-col overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-mist-light"
+        >
           <div className="flex items-center justify-between bg-harbor px-4 py-3 text-white">
             <div>
               <p className="font-display text-sm font-semibold">Clinic Assistant</p>
               <p className="text-[11px] opacity-80">Usually answers instantly</p>
             </div>
-            <button onClick={() => setOpen(false)} aria-label="Close chat">
+            <button onClick={closeChat} aria-label="Close chat">
               <X size={18} />
             </button>
           </div>
@@ -82,7 +151,8 @@ export default function Chatbot() {
       )}
 
       <button
-        onClick={() => setOpen((o) => !o)}
+        ref={bubbleRef}
+        onClick={toggle}
         className="flex h-14 w-14 items-center justify-center rounded-full bg-sunrise text-white shadow-lg transition hover:brightness-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-harbor-dark focus-visible:ring-offset-2"
         aria-label="Toggle clinic assistant"
       >

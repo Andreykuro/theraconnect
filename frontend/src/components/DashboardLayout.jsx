@@ -1,10 +1,34 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Menu } from "lucide-react";
+import { animate, createScope } from "animejs";
 import Sidebar from "./Sidebar";
 import Chatbot from "./Chatbot";
+import { prefersReducedMotion } from "../lib/motion";
 
 export default function DashboardLayout({ title, subtitle, actions, children }) {
   const [navigationOpen, setNavigationOpen] = useState(false);
+  const mainRef = useRef(null);
+  const scope = useRef(null);
+
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el || prefersReducedMotion()) return;
+
+    scope.current = createScope({ root: el }).add(() => {
+      animate(el, {
+        opacity: [0, 1],
+        translateY: [10, 0],
+        duration: 420,
+        ease: "outQuad",
+      });
+    });
+
+    return () => scope.current?.revert();
+    // Re-run this entrance every time the page's own content changes route -
+    // DashboardLayout mounts fresh per page component, so this fires once
+    // per navigation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-chalk">
@@ -48,7 +72,7 @@ export default function DashboardLayout({ title, subtitle, actions, children }) 
           </div>
           {actions && <div className="flex-shrink-0">{actions}</div>}
         </header>
-        <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">{children}</main>
+        <main ref={mainRef} className="flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">{children}</main>
       </div>
       <Chatbot />
     </div>

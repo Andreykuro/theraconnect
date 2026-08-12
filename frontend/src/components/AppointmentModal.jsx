@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import api from "../lib/api";
+import useModalEntrance from "../hooks/useModalEntrance";
 
 const SERVICES = [
   "Speech Therapy",
@@ -31,6 +32,7 @@ export default function AppointmentModal({ clients, therapists, initial, onClose
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const { backdropRef, panelRef } = useModalEntrance();
 
   useEffect(() => {
     function onKey(e) {
@@ -90,8 +92,8 @@ export default function AppointmentModal({ clients, therapists, initial, onClose
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+    <div ref={backdropRef} className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4">
+      <div ref={panelRef} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-xl font-semibold text-ink">
             {isEdit ? "Edit session" : "Schedule a session"}

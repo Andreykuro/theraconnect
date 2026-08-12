@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { Bot, CheckCircle2, Loader2, ShieldCheck, Sparkles, X } from "lucide-react";
 import api from "../lib/api";
+import useModalEntrance from "../hooks/useModalEntrance";
 
 const fieldClass =
   "w-full rounded-lg border border-mist-light px-3 py-2 text-sm outline-none focus:border-harbor";
@@ -30,6 +31,7 @@ export default function ProgressNoteModal({ client, goals, appointments, onClose
   const [saving, setSaving] = useState(false);
   const [assisted, setAssisted] = useState(null);
   const [error, setError] = useState("");
+  const { backdropRef, panelRef } = useModalEntrance();
 
   const relevantAppointments = useMemo(
     () =>
@@ -112,8 +114,8 @@ export default function ProgressNoteModal({ client, goals, appointments, onClose
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 px-4 py-5">
-      <div className="max-h-[94vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-xl">
+    <div ref={backdropRef} className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 px-4 py-5">
+      <div ref={panelRef} className="max-h-[94vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-mist-light bg-white px-6 py-4">
           <div className="flex items-center gap-2">
             <CheckCircle2 size={20} className="text-harbor" />

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Loader2, Target, X } from "lucide-react";
 import api from "../lib/api";
+import useModalEntrance from "../hooks/useModalEntrance";
 
 const fieldClass =
   "w-full rounded-lg border border-mist-light px-3 py-2 text-sm outline-none focus:border-harbor";
@@ -25,6 +26,7 @@ export default function GoalModal({ client, onClose, onSaved }) {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { backdropRef, panelRef } = useModalEntrance();
 
   function update(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -54,8 +56,8 @@ export default function GoalModal({ client, onClose, onSaved }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+    <div ref={backdropRef} className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4">
+      <div ref={panelRef} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Target size={20} className="text-sunrise" />

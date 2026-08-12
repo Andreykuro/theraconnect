@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import api from "../lib/api";
+import useModalEntrance from "../hooks/useModalEntrance";
 
 export default function ClientModal({ therapists, initial, onClose, onSaved }) {
   const isEdit = Boolean(initial?.id);
@@ -16,6 +17,7 @@ export default function ClientModal({ therapists, initial, onClose, onSaved }) {
   });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const { backdropRef, panelRef } = useModalEntrance();
 
   function update(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -45,8 +47,8 @@ export default function ClientModal({ therapists, initial, onClose, onSaved }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4">
-      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+    <div ref={backdropRef} className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4">
+      <div ref={panelRef} className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-xl font-semibold text-ink">
             {isEdit ? "Edit client" : "Add client"}

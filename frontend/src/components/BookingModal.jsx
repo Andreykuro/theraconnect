@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { X, Loader2, CalendarCheck } from "lucide-react";
 import { format, parseISO, addDays } from "date-fns";
 import api from "../lib/api";
+import useModalEntrance from "../hooks/useModalEntrance";
 
 function todayISODate() {
   const d = new Date();
@@ -16,6 +17,7 @@ export default function BookingModal({ therapists, onClose, onBooked }) {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState("");
+  const { backdropRef, panelRef } = useModalEntrance();
 
   const therapist = therapists.find((t) => String(t.id) === String(therapistId));
   const minDate = todayISODate();
@@ -61,8 +63,8 @@ export default function BookingModal({ therapists, onClose, onBooked }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+    <div ref={backdropRef} className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4">
+      <div ref={panelRef} className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CalendarCheck size={20} className="text-harbor" />

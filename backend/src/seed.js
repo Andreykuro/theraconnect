@@ -17,6 +17,7 @@ async function main() {
       DELETE FROM treatment_plans;
       DELETE FROM ai_audit_logs;
       DELETE FROM notifications_log;
+      DELETE FROM messages;
       DELETE FROM client_attachments;
       DELETE FROM appointments;
       DELETE FROM announcements;

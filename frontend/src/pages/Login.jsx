@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Navigate, Link } from "react-router-dom";
 import { ArrowLeft, CalendarDays, ChartNoAxesCombined, ShieldCheck } from "lucide-react";
+import { animate, createScope, createTimeline } from "animejs";
 import BrandLogo from "../components/BrandLogo";
 import { useAuth } from "../context/AuthContext";
+import { prefersReducedMotion } from "../lib/motion";
 
 const DEMO_ACCOUNTS = [
   { label: "Admin", email: "admin@theraconnect.ph", password: "admin123" },
@@ -23,6 +25,42 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const asideRef = useRef(null);
+  const mainRef = useRef(null);
+  const scope = useRef(null);
+
+  useEffect(() => {
+    if (prefersReducedMotion()) {
+      if (asideRef.current) asideRef.current.style.opacity = "1";
+      return;
+    }
+
+    scope.current = createScope().add(() => {
+      if (asideRef.current) {
+        animate(asideRef.current, { opacity: [0, 1], duration: 600, ease: "outQuad" });
+      }
+      if (mainRef.current) {
+        const backEl = mainRef.current.querySelector(".login-back");
+        const cardEl = mainRef.current.querySelector(".login-card");
+        const demoEl = mainRef.current.querySelector(".login-demo");
+        [backEl, cardEl, demoEl].forEach((el) => {
+          if (el) el.style.opacity = "0";
+        });
+
+        createTimeline()
+          .add(backEl, {
+            opacity: [0, 1],
+            translateY: [-8, 0],
+            duration: 400,
+            ease: "outQuad",
+          })
+          .add(cardEl, { opacity: [0, 1], translateY: [24, 0], duration: 550, ease: "outExpo" }, 100)
+          .add(demoEl, { opacity: [0, 1], translateY: [16, 0], duration: 450, ease: "outQuad" }, 350);
+      }
+    });
+
+    return () => scope.current?.revert();
+  }, []);
 
   if (user) return <Navigate to={`/${user.role}`} replace />;
 
@@ -47,7 +85,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-chalk lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(32rem,1.1fr)]">
-      <aside className="relative hidden min-h-screen overflow-hidden bg-harbor lg:flex">
+      <aside ref={asideRef} className="relative hidden min-h-screen overflow-hidden bg-harbor lg:flex" style={{ opacity: 0 }}>
         <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-therafun-sky/20" />
         <div className="absolute -bottom-28 right-10 h-80 w-80 rounded-full bg-therafun-lime/15" />
         <div className="absolute right-16 top-20 h-28 w-28 rounded-full bg-amber/20" />
@@ -87,17 +125,17 @@ export default function Login() {
         </div>
       </aside>
 
-      <main className="flex min-h-screen items-center justify-center px-5 py-8 sm:px-8 lg:px-12">
+      <main ref={mainRef} className="flex min-h-screen items-center justify-center px-5 py-8 sm:px-8 lg:px-12">
         <div className="w-full max-w-md">
           <Link
             to="/"
-            className="mb-5 inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-sm font-semibold text-mist transition hover:text-harbor"
+            className="login-back mb-5 inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-sm font-semibold text-mist transition hover:text-harbor"
           >
             <ArrowLeft size={16} />
             Back to home
           </Link>
 
-          <section className="overflow-hidden rounded-3xl border border-mist-light bg-white shadow-[0_24px_70px_rgba(80,32,106,0.12)]">
+          <section className="login-card overflow-hidden rounded-3xl border border-mist-light bg-white shadow-[0_24px_70px_rgba(80,32,106,0.12)]">
             <div className="border-b border-mist-light bg-gradient-to-br from-white via-white to-harbor-light/65 px-7 pb-5 pt-4 text-center">
               <BrandLogo eager className="mx-auto h-28 w-auto max-w-full" />
               <p className="-mt-1 text-xs font-bold uppercase tracking-[0.16em] text-harbor">
@@ -170,7 +208,7 @@ export default function Login() {
             </div>
           </section>
 
-          <div className="mt-5 rounded-2xl border border-dashed border-harbor/20 bg-white/70 p-4">
+          <div className="login-demo mt-5 rounded-2xl border border-dashed border-harbor/20 bg-white/70 p-4">
             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-mist">
               Demo accounts · thesis defense
             </p>

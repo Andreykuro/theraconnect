@@ -1,12 +1,14 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Plus, CalendarClock, CircleCheck, CircleAlert } from "lucide-react";
+import { animate } from "animejs";
 import api from "../../lib/api";
 import DashboardLayout from "../../components/DashboardLayout";
 import AppointmentModal from "../../components/AppointmentModal";
+import { prefersReducedMotion } from "../../lib/motion";
 
 export default function AdminDashboard() {
   const [appointments, setAppointments] = useState([]);
@@ -129,13 +131,40 @@ export default function AdminDashboard() {
 function StatCard({ icon: Icon, label, value, color }) {
   const iconWrapClass =
     color === "amber" ? "bg-amber-light text-amber" : "bg-harbor-light text-harbor-dark";
+  const numRef = useRef(null);
+  const prevValue = useRef(0);
+
+  useEffect(() => {
+    const el = numRef.current;
+    if (!el) return;
+
+    if (prefersReducedMotion()) {
+      el.textContent = value;
+      prevValue.current = value;
+      return;
+    }
+
+    const counter = { n: prevValue.current };
+    animate(counter, {
+      n: value,
+      duration: 700,
+      ease: "outExpo",
+      onUpdate: () => {
+        el.textContent = Math.round(counter.n);
+      },
+    });
+    prevValue.current = value;
+  }, [value]);
+
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-mist-light">
       <div className={`flex h-10 w-10 items-center justify-center rounded-full ${iconWrapClass}`}>
         <Icon size={18} />
       </div>
       <div>
-        <p className="font-display text-xl font-semibold leading-none text-ink">{value}</p>
+        <p ref={numRef} className="font-display text-xl font-semibold leading-none text-ink">
+          {value}
+        </p>
         <p className="text-xs text-mist">{label}</p>
       </div>
     </div>
