@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -24,7 +24,7 @@
   --color-therafun-lime-dark: #536A00;
   --color-therafun-lime-light: #F3F9D7;
 
-  --font-display: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
   --font-body: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
@@ -123,25 +123,216 @@ textarea {
   }
 }
 
-/* FullCalendar theme overrides to match palette */
+/* Organic blob shapes - CSS-only (no hand-coded SVG paths to get wrong),
+   used behind icons and as decorative hero shapes so the site doesn't read
+   as generic "icon in a perfect circle" template design. */
+.blob-1 { border-radius: 63% 37% 54% 46% / 43% 37% 63% 57%; }
+.blob-2 { border-radius: 42% 58% 68% 32% / 55% 42% 58% 45%; }
+.blob-3 { border-radius: 58% 42% 39% 61% / 62% 47% 53% 38%; }
+
+/* FullCalendar - restyled as a digital version of the clinic's paper
+   appointment board: events render as small ticket stubs (reusing the same
+   perforated-edge motif as SessionCard) rather than generic solid blocks. */
 .tc-calendar .fc {
   font-family: var(--font-body);
   --fc-border-color: var(--color-mist-light);
-  --fc-today-bg-color: var(--color-sunrise-light);
+  --fc-today-bg-color: transparent;
   --fc-neutral-bg-color: var(--color-chalk);
   --fc-page-bg-color: transparent;
-  --fc-button-bg-color: var(--color-harbor);
-  --fc-button-border-color: var(--color-harbor);
-  --fc-button-hover-bg-color: var(--color-harbor-dark);
-  --fc-button-hover-border-color: var(--color-harbor-dark);
-  --fc-button-active-bg-color: var(--color-harbor-dark);
+  --fc-now-indicator-color: var(--color-sunrise);
+  font-size: 13px;
+}
+
+/* Toolbar */
+.tc-calendar .fc-header-toolbar {
+  margin-bottom: 1.25rem !important;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 .tc-calendar .fc-toolbar-title {
   font-family: var(--font-display);
+  font-size: 1.125rem !important;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+.tc-calendar .fc-button {
+  background: var(--color-chalk) !important;
+  border: 1px solid var(--color-mist-light) !important;
+  color: var(--color-ink) !important;
+  box-shadow: none !important;
+  font-weight: 600;
+  text-transform: capitalize;
+  padding: 0.4rem 0.85rem !important;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.tc-calendar .fc-button:hover {
+  background: var(--color-harbor-light) !important;
+  color: var(--color-harbor-dark) !important;
+}
+.tc-calendar .fc-button-primary:not(:disabled).fc-button-active,
+.tc-calendar .fc-button-primary:not(:disabled):active {
+  background: var(--color-harbor) !important;
+  border-color: var(--color-harbor) !important;
+  color: #fff !important;
+}
+.tc-calendar .fc-button-group {
+  border-radius: 9999px;
+  overflow: hidden;
+  border: 1px solid var(--color-mist-light);
+}
+.tc-calendar .fc-button-group .fc-button {
+  border: none !important;
+  border-radius: 0 !important;
+}
+.tc-calendar .fc-today-button {
+  border-radius: 9999px !important;
+}
+.tc-calendar .fc-prev-button,
+.tc-calendar .fc-next-button {
+  border-radius: 9999px !important;
+  width: 2.1rem;
+  padding: 0.4rem !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Column headers - today gets a filled circular date badge, like a paper
+   desk calendar with today's page dog-eared */
+.tc-calendar .fc-col-header-cell {
+  padding: 0.6rem 0 !important;
+  border-color: var(--color-mist-light);
+}
+.tc-calendar .fc-col-header-cell-cushion {
+  color: var(--color-mist);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 4px !important;
+}
+.tc-calendar .fc-day-today .fc-col-header-cell-cushion {
+  color: var(--color-ink);
+}
+.tc-calendar .fc-timegrid-axis,
+.tc-calendar .fc-timegrid-slot-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--color-mist);
+}
+.tc-calendar .fc-timegrid-slot {
+  border-color: var(--color-mist-light) !important;
+  height: 2.75rem !important;
+}
+.tc-calendar .fc-timegrid-slot-minor {
+  border-style: dashed;
+}
+.tc-calendar .fc-day-today {
+  background: var(--color-chalk) !important;
+}
+.tc-calendar .fc-timegrid-col.fc-day-today {
+  background: color-mix(in srgb, var(--color-sunrise-light) 55%, transparent) !important;
+}
+
+/* Now indicator: a slim accent line with a small dot at the axis edge */
+.tc-calendar .fc-timegrid-now-indicator-line {
+  border-color: var(--color-sunrise) !important;
+  border-width: 1.5px 0 0 0;
+}
+.tc-calendar .fc-timegrid-now-indicator-arrow {
+  border-color: var(--color-sunrise) !important;
+  border-width: 5px 0 5px 6px;
+}
+
+/* Event reset - our custom eventContent renders the full ticket card, so
+   strip FullCalendar's own background/border/padding chrome entirely */
+.tc-calendar .fc-event {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 1px 3px;
+}
+.tc-calendar .fc-daygrid-event {
+  margin-top: 2px;
+}
+.tc-calendar .fc-timegrid-event-harness {
+  margin-right: 2px;
+}
+
+/* Ticket-stub event card */
+.tc-event-ticket {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-radius: 8px;
+  padding: 4px 7px 4px 10px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--tc-color) 8%, white);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc-color) 28%, transparent);
+}
+.tc-event-ticket::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 3px;
+  bottom: 3px;
+  width: 1px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--tc-color) 55%, transparent) 0,
+    color-mix(in srgb, var(--tc-color) 55%, transparent) 3px,
+    transparent 3px,
+    transparent 7px
+  );
+}
+.tc-event-ticket:hover {
+  background: color-mix(in srgb, var(--tc-color) 16%, white);
+}
+.tc-event-time {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--tc-color) 70%, var(--color-ink));
+  line-height: 1.2;
+}
+.tc-event-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--color-ink);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tc-event-sub {
+  font-size: 10px;
+  color: var(--color-mist);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tc-event-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+/* Compact month-view chip */
+.tc-event-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 4px;
+  border-radius: 999px;
+  font-size: 10.5px;
   font-weight: 600;
   color: var(--color-ink);
 }
-.tc-calendar .fc-event {
-  border: none;
-  cursor: pointer;
+.tc-event-chip:hover {
+  background: var(--color-chalk);
 }

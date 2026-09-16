@@ -86,9 +86,9 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-chalk lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(32rem,1.1fr)]">
       <aside ref={asideRef} className="relative hidden min-h-screen overflow-hidden bg-harbor lg:flex" style={{ opacity: 0 }}>
-        <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-therafun-sky/20" />
-        <div className="absolute -bottom-28 right-10 h-80 w-80 rounded-full bg-therafun-lime/15" />
-        <div className="absolute right-16 top-20 h-28 w-28 rounded-full bg-amber/20" />
+        <div className="blob-1 absolute -left-24 -top-24 h-72 w-72 bg-therafun-sky/20" />
+        <div className="blob-2 absolute -bottom-28 right-10 h-80 w-80 bg-therafun-lime/15" />
+        <div className="blob-3 absolute right-16 top-20 h-28 w-28 bg-amber/20" />
 
         <div className="relative z-10 flex w-full flex-col justify-between px-10 py-12 xl:px-14">
           <p className="w-fit rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-white/90">
@@ -110,7 +110,7 @@ export default function Login() {
             <div className="mt-9 space-y-4">
               {PORTAL_FEATURES.map(({ icon: Icon, text }) => (
                 <div key={text} className="flex items-center gap-3 text-sm font-medium text-white/90">
-                  <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/12">
+                  <span className="blob-2 flex h-10 w-10 flex-shrink-0 items-center justify-center bg-white/12">
                     <Icon size={18} />
                   </span>
                   {text}
