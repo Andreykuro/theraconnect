@@ -166,6 +166,31 @@ CREATE TABLE IF NOT EXISTS client_attachments (
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS classwork (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id           INTEGER NOT NULL REFERENCES clients(id),
+  therapist_id        INTEGER NOT NULL REFERENCES therapists(id),
+  title               TEXT NOT NULL,
+  instructions        TEXT,
+  category            TEXT NOT NULL DEFAULT 'Speech Therapy',
+  due_date            TEXT,
+  points_possible     INTEGER NOT NULL DEFAULT 10,
+  attachment_filename TEXT,
+  attachment_original_name TEXT,
+  attachment_mime_type TEXT,
+  status              TEXT NOT NULL DEFAULT 'assigned' CHECK (status IN ('assigned','submitted','graded')),
+  submission_note     TEXT,
+  submission_filename TEXT,
+  submission_original_name TEXT,
+  submission_mime_type TEXT,
+  submitted_at        TEXT,
+  points_earned       INTEGER,
+  feedback            TEXT,
+  graded_at           TEXT,
+  created_by          INTEGER REFERENCES users(id),
+  created_at          TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_appt_therapist_time ON appointments(therapist_id, start_time, end_time);
 CREATE INDEX IF NOT EXISTS idx_appt_client ON appointments(client_id);
 CREATE INDEX IF NOT EXISTS idx_plan_client ON treatment_plans(client_id, status);
@@ -174,6 +199,8 @@ CREATE INDEX IF NOT EXISTS idx_note_client_date ON session_notes(client_id, sess
 CREATE INDEX IF NOT EXISTS idx_measurement_goal ON goal_measurements(goal_id, recorded_at);
 CREATE INDEX IF NOT EXISTS idx_messages_client_time ON messages(client_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_attachments_client ON client_attachments(client_id);
+CREATE INDEX IF NOT EXISTS idx_classwork_client ON classwork(client_id, status);
+CREATE INDEX IF NOT EXISTS idx_classwork_therapist ON classwork(therapist_id, status);
 `;
 
 const wrapper = {};

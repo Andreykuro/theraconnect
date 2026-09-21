@@ -22,6 +22,7 @@ async function main() {
   const chatbotRoutes = require("./routes/chatbot");
   const notificationRoutes = require("./routes/notifications");
   const messageRoutes = require("./routes/messages");
+  const classworkRoutes = require("./routes/classwork");
 
   const app = express();
 
@@ -44,6 +45,7 @@ async function main() {
   app.use("/api/chatbot", chatbotRoutes);
   app.use("/api/notifications", notificationRoutes);
   app.use("/api/messages", messageRoutes);
+  app.use("/api/classwork", classworkRoutes);
 
   app.use((req, res) => res.status(404).json({ error: "Not found" }));
   // eslint-disable-next-line no-unused-vars

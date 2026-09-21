@@ -12,10 +12,12 @@ import Notifications from "./pages/admin/Notifications";
 import Automation from "./pages/admin/Automation";
 import TherapistDashboard from "./pages/therapist/TherapistDashboard";
 import TherapistProgress from "./pages/therapist/TherapistProgress";
+import TherapistClasswork from "./pages/therapist/TherapistClasswork";
 import TherapistMessages from "./pages/therapist/TherapistMessages";
 import ParentDashboard from "./pages/parent/ParentDashboard";
 import ParentEnrollment from "./pages/parent/ParentEnrollment";
 import ParentProgress from "./pages/parent/ParentProgress";
+import ParentClasswork from "./pages/parent/ParentClasswork";
 import ParentMessages from "./pages/parent/ParentMessages";
 
 function Root() {
@@ -95,6 +97,15 @@ export default function App() {
           />
 
           <Route
+            path="/therapist/classwork"
+            element={
+              <ProtectedRoute roles={["therapist"]}>
+                <TherapistClasswork />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/therapist/messages"
             element={
               <ProtectedRoute roles={["therapist"]}>
@@ -124,6 +135,15 @@ export default function App() {
             element={
               <ProtectedRoute roles={["parent"]}>
                 <ParentProgress />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/parent/classwork"
+            element={
+              <ProtectedRoute roles={["parent"]}>
+                <ParentClasswork />
               </ProtectedRoute>
             }
           />
