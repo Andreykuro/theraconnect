@@ -13,10 +13,12 @@ import {
   ArrowRight,
   Blocks,
   ShieldCheck,
+  CalendarDays,
 } from "lucide-react";
 import PublicNavbar from "../components/PublicNavbar";
 import BrandLogo from "../components/BrandLogo";
 import HeroArt from "../components/HeroArt";
+import SideDecor from "../components/SideDecor";
 import Reveal from "../components/Reveal";
 import useHeroIntro from "../hooks/useHeroIntro";
 
@@ -73,6 +75,14 @@ const SERVICES = [
   },
 ];
 
+// Maikling facts sa ilalim ng hero - galing lang sa About at Contact section
+const QUICK_FACTS = [
+  { icon: Users, text: "100+ children every week", tone: "purple" },
+  { icon: Clock, text: "Mon–\u2060Sat, 8\u00A0AM to 5\u00A0PM", tone: "sky" },
+  { icon: MessageCircle, text: "Speech, occupational, and physical therapy", tone: "orange" },
+  { icon: CalendarDays, text: "Parent portal for schedules and progress", tone: "lime" },
+];
+
 export default function Home() {
   const heroRef = useHeroIntro();
 
@@ -82,8 +92,11 @@ export default function Home() {
 
       {/* Hero - asymmetric two-column, illustration carries visual weight
           instead of a centered logo-and-text stack */}
-      <section ref={heroRef} className="relative overflow-hidden px-6 pb-16 pt-32 sm:pb-24 sm:pt-40">
+      <section ref={heroRef} className="relative overflow-hidden px-6 pb-12 pt-32 sm:pb-16 sm:pt-40">
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[42rem] bg-gradient-to-b from-harbor-light via-chalk to-chalk" />
+
+        {/* Palamuti sa gilid para hindi blangko sa malapad na screen */}
+        <SideDecor />
 
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8">
           <div className="order-2 text-center lg:order-1 lg:text-left">
@@ -129,11 +142,28 @@ export default function Home() {
             <HeroArt />
           </div>
         </div>
+
+        {/* Quick facts - pang-fill sa blangko sa ilalim ng hero */}
+        <Reveal delay={300} className="mx-auto mt-14 max-w-6xl">
+          <ul className="grid grid-cols-1 gap-x-6 gap-y-4 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-mist-light sm:grid-cols-2 lg:grid-cols-4">
+            {QUICK_FACTS.map(({ icon: Icon, text, tone }) => {
+              const t = SERVICE_TONES[tone];
+              return (
+                <li key={text} className="flex items-center gap-3">
+                  <span className={`blob-2 flex h-10 w-10 flex-shrink-0 items-center justify-center ${t.blob}`}>
+                    <Icon size={18} className={t.icon} />
+                  </span>
+                  <span className="text-sm font-semibold text-ink">{text}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </Reveal>
       </section>
 
       {/* Services - the founding program gets real visual weight instead of
           sitting in a uniform grid of identical cards */}
-      <section id="services" className="px-6 py-20 sm:py-28">
+      <section id="services" className="scroll-mt-20 px-6 py-20 sm:py-28">
         <div className="mx-auto max-w-6xl">
           <Reveal className="mx-auto mb-14 max-w-xl text-center">
             <p className="mb-3 text-xs font-bold uppercase tracking-widest text-sunrise">
@@ -217,7 +247,7 @@ export default function Home() {
       </section>
 
       {/* About Us */}
-      <section id="about" className="bg-white px-6 py-20 sm:py-28">
+      <section id="about" className="scroll-mt-20 bg-white px-6 py-20 sm:py-28">
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-2">
           <Reveal>
             <p className="mb-3 text-xs font-bold uppercase tracking-widest text-sunrise">About us</p>
@@ -253,7 +283,7 @@ export default function Home() {
       </section>
 
       {/* Contact / footer */}
-      <section id="contact" className="px-6 py-16 sm:py-20">
+      <section id="contact" className="scroll-mt-20 px-6 py-16 sm:py-20">
         <Reveal className="relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-harbor p-10 text-white">
           <div className="blob-1 absolute -bottom-16 -left-10 h-52 w-52 bg-white/5" />
           <div className="relative grid grid-cols-1 gap-6 sm:grid-cols-3">

@@ -5,12 +5,8 @@ import { animate, stagger, spring } from "animejs";
 import BrandLogo from "./BrandLogo";
 import { prefersReducedMotion } from "../lib/motion";
 
+// Isang listahan lang para sa desktop nav at sa mobile menu para hindi nagkakaiba
 const LINKS = [
-  { href: "#top", label: "Home" },
-  { href: "#about", label: "About Us" },
-];
-
-const MENU_LINKS = [
   { href: "#top", label: "Home" },
   { href: "#services", label: "Services" },
   { href: "#about", label: "About Us" },
@@ -31,6 +27,16 @@ export default function PublicNavbar() {
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Kapag lumaki ang screen papuntang desktop, wala nang hamburger menu - isara na
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    function onChange(e) {
+      if (e.matches) setOpen(false);
+    }
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
   }, []);
 
   useEffect(() => {
@@ -85,7 +91,7 @@ export default function PublicNavbar() {
             </span>
           </a>
 
-          <nav className="hidden items-center gap-8 md:flex">
+          <nav className="hidden items-center gap-6 md:flex lg:gap-8">
             {LINKS.map((l) => (
               <a
                 key={l.href}
@@ -99,14 +105,6 @@ export default function PublicNavbar() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setOpen(true)}
-              className="flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-ink transition hover:bg-chalk"
-              aria-label="Open menu"
-            >
-              <Menu size={18} />
-              <span className="hidden sm:inline">Menu</span>
-            </button>
             <Link
               to="/enroll"
               className="hidden rounded-full bg-sunrise px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:brightness-110 sm:inline-flex"
@@ -119,13 +117,23 @@ export default function PublicNavbar() {
             >
               Login
             </Link>
+            {/* Mobile lang 'to - sa desktop nasa nav bar na lahat ng links */}
+            <button
+              onClick={() => setOpen(true)}
+              className="flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-ink transition hover:bg-chalk md:hidden"
+              aria-label="Open menu"
+              aria-expanded={open}
+            >
+              <Menu size={18} />
+              <span className="hidden sm:inline">Menu</span>
+            </button>
           </div>
         </div>
       </header>
 
       {/* Off-canvas menu */}
       <div
-        className={`fixed inset-0 z-50 ${open ? "pointer-events-auto" : "pointer-events-none"}`}
+        className={`fixed inset-0 z-50 md:hidden ${open ? "pointer-events-auto" : "pointer-events-none"}`}
       >
         <div
           ref={backdropRef}
@@ -146,7 +154,7 @@ export default function PublicNavbar() {
           </div>
 
           <nav ref={linksRef} className="flex flex-col gap-1">
-            {MENU_LINKS.map((l) => (
+            {LINKS.map((l) => (
               <a
                 key={l.href}
                 href={l.href}

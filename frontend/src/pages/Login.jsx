@@ -1,15 +1,37 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Navigate, Link } from "react-router-dom";
-import { ArrowLeft, CalendarDays, ChartNoAxesCombined, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CalendarDays, ChartNoAxesCombined, ShieldCheck, Stethoscope, Users } from "lucide-react";
 import { animate, createScope, createTimeline } from "animejs";
 import BrandLogo from "../components/BrandLogo";
 import { useAuth } from "../context/AuthContext";
 import { prefersReducedMotion } from "../lib/motion";
 
+// Mga role na pwedeng pagpilian sa login. Yung "value" ay kapareho ng role sa database.
+const ROLES = [
+  {
+    value: "parent",
+    label: "Parent",
+    icon: Users,
+    hint: "Check your child's schedule, progress, and messages.",
+  },
+  {
+    value: "therapist",
+    label: "Therapist",
+    icon: Stethoscope,
+    hint: "Manage your sessions, progress notes, and classwork.",
+  },
+  {
+    value: "admin",
+    label: "Admin",
+    icon: ShieldCheck,
+    hint: "Run the clinic: clients, announcements, and automation.",
+  },
+];
+
 const DEMO_ACCOUNTS = [
-  { label: "Admin", email: "admin@theraconnect.ph", password: "admin123" },
-  { label: "Therapist", email: "anna@theraconnect.ph", password: "therapist123" },
-  { label: "Parent", email: "parent1@theraconnect.ph", password: "parent123" },
+  { label: "Admin", role: "admin", email: "admin@theraconnect.ph", password: "admin123" },
+  { label: "Therapist", role: "therapist", email: "anna@theraconnect.ph", password: "therapist123" },
+  { label: "Parent", role: "parent", email: "parent1@theraconnect.ph", password: "parent123" },
 ];
 
 const PORTAL_FEATURES = [
@@ -21,6 +43,7 @@ const PORTAL_FEATURES = [
 export default function Login() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
+  const [role, setRole] = useState("parent");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -64,12 +87,14 @@ export default function Login() {
 
   if (user) return <Navigate to={`/${user.role}`} replace />;
 
+  const activeRole = ROLES.find((r) => r.value === role) ?? ROLES[0];
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const loggedInUser = await login(email, password);
+      const loggedInUser = await login(email, password, role);
       navigate(`/${loggedInUser.role}`);
     } catch (err) {
       setError(err.response?.data?.error || "Couldn't log in. Please check your details.");
@@ -78,9 +103,17 @@ export default function Login() {
     }
   }
 
+  function chooseRole(value) {
+    setRole(value);
+    setError("");
+  }
+
+  // Yung demo button, nagse-set din ng role para sakto agad ang login
   function fillDemo(account) {
+    setRole(account.role);
     setEmail(account.email);
     setPassword(account.password);
+    setError("");
   }
 
   return (
@@ -146,12 +179,34 @@ export default function Login() {
             <div className="px-6 py-7 sm:px-8">
               <div className="mb-6">
                 <h2 className="font-display text-2xl font-bold text-ink">Welcome back</h2>
-                <p className="mt-1 text-sm leading-6 text-mist">
-                  Sign in to manage care, appointments, and progress.
-                </p>
+                <p className="mt-1 text-sm leading-6 text-mist">{activeRole.hint}</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
+                <fieldset>
+                  <legend className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-mist">
+                    I'm signing in as
+                  </legend>
+                  <div className="grid grid-cols-3 gap-2">
+                    {ROLES.map(({ value, label, icon: Icon }) => (
+                      <label key={value} className="cursor-pointer">
+                        <input
+                          type="radio"
+                          name="role"
+                          value={value}
+                          checked={role === value}
+                          onChange={() => chooseRole(value)}
+                          className="peer sr-only"
+                        />
+                        <span className="flex flex-col items-center gap-1.5 rounded-xl border border-mist-light bg-chalk/60 px-2 py-3 text-xs font-bold text-mist transition hover:border-harbor/40 peer-checked:border-harbor peer-checked:bg-harbor-light peer-checked:text-harbor-dark peer-focus-visible:ring-4 peer-focus-visible:ring-harbor/20">
+                          <Icon size={18} />
+                          {label}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
                 <div>
                   <label htmlFor="email" className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-mist">
                     Email address
@@ -195,16 +250,18 @@ export default function Login() {
                   disabled={loading}
                   className="w-full rounded-xl bg-harbor px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-harbor-dark focus-visible:ring-4 focus-visible:ring-harbor/20 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {loading ? "Signing in…" : "Sign in to TheraConnect"}
+                  {loading ? "Signing in…" : `Sign in as ${activeRole.label}`}
                 </button>
               </form>
 
-              <p className="mt-6 border-t border-mist-light pt-5 text-center text-sm text-mist">
-                New parent?{" "}
-                <Link to="/enroll" className="font-bold text-harbor hover:text-harbor-dark">
-                  Enroll your child
-                </Link>
-              </p>
+              {role === "parent" && (
+                <p className="mt-6 border-t border-mist-light pt-5 text-center text-sm text-mist">
+                  New parent?{" "}
+                  <Link to="/enroll" className="font-bold text-harbor hover:text-harbor-dark">
+                    Enroll your child
+                  </Link>
+                </p>
+              )}
             </div>
           </section>
 

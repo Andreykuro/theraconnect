@@ -9,8 +9,9 @@ export function AuthProvider({ children }) {
     return raw ? JSON.parse(raw) : null;
   });
 
-  const login = useCallback(async (email, password) => {
-    const { data } = await api.post("/auth/login", { email, password });
+  // role = yung pinili sa login page (parent / therapist / admin), chine-check ng backend
+  const login = useCallback(async (email, password, role) => {
+    const { data } = await api.post("/auth/login", { email, password, role });
     localStorage.setItem("tc_token", data.token);
     localStorage.setItem("tc_user", JSON.stringify(data.user));
     setUser(data.user);
