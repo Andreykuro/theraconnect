@@ -98,7 +98,7 @@ export default function Home() {
         {/* Palamuti sa gilid para hindi blangko sa malapad na screen */}
         <SideDecor />
 
-        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8">
+        <div className="mx-auto grid max-w-[88rem] grid-cols-1 items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
           <div className="order-2 text-center lg:order-1 lg:text-left">
             <p className="hero-heading mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-harbor-dark shadow-sm ring-1 ring-mist-light">
               <ShieldCheck size={14} />
@@ -144,7 +144,7 @@ export default function Home() {
         </div>
 
         {/* Quick facts - pang-fill sa blangko sa ilalim ng hero */}
-        <Reveal delay={300} className="mx-auto mt-14 max-w-6xl">
+        <Reveal delay={300} className="mx-auto mt-14 max-w-[88rem]">
           <ul className="grid grid-cols-1 gap-x-6 gap-y-4 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-mist-light sm:grid-cols-2 lg:grid-cols-4">
             {QUICK_FACTS.map(({ icon: Icon, text, tone }) => {
               const t = SERVICE_TONES[tone];
@@ -164,7 +164,7 @@ export default function Home() {
       {/* Services - the founding program gets real visual weight instead of
           sitting in a uniform grid of identical cards */}
       <section id="services" className="scroll-mt-20 px-6 py-20 sm:py-28">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-[88rem]">
           <Reveal className="mx-auto mb-14 max-w-xl text-center">
             <p className="mb-3 text-xs font-bold uppercase tracking-widest text-sunrise">
               What we offer
@@ -219,7 +219,7 @@ export default function Home() {
 
       {/* TheraFun Play promo */}
       <section className="px-6 py-4">
-        <Reveal className="relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-gradient-to-br from-therafun-sky via-therafun-sky to-therafun-lime">
+        <Reveal className="relative mx-auto max-w-[88rem] overflow-hidden rounded-[2rem] bg-gradient-to-br from-therafun-sky via-therafun-sky to-therafun-lime">
           <div className="blob-1 absolute -right-8 -top-16 h-56 w-56 bg-white/10" />
           <div className="relative flex flex-col items-center gap-6 p-8 text-center sm:p-10 lg:flex-row lg:items-center lg:justify-between lg:text-left">
             <div className="lg:max-w-lg">
@@ -248,7 +248,7 @@ export default function Home() {
 
       {/* About Us */}
       <section id="about" className="scroll-mt-20 bg-white px-6 py-20 sm:py-28">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-2">
+        <div className="mx-auto grid max-w-[88rem] grid-cols-1 items-center gap-14 lg:grid-cols-2">
           <Reveal>
             <p className="mb-3 text-xs font-bold uppercase tracking-widest text-sunrise">About us</p>
             <h2 className="mb-5 font-display text-4xl font-semibold leading-tight text-ink">
@@ -284,7 +284,7 @@ export default function Home() {
 
       {/* Contact / footer */}
       <section id="contact" className="scroll-mt-20 px-6 py-16 sm:py-20">
-        <Reveal className="relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-harbor p-10 text-white">
+        <Reveal className="relative mx-auto max-w-[88rem] overflow-hidden rounded-[2rem] bg-harbor p-10 text-white">
           <div className="blob-1 absolute -bottom-16 -left-10 h-52 w-52 bg-white/5" />
           <div className="relative grid grid-cols-1 gap-6 sm:grid-cols-3">
             <div>

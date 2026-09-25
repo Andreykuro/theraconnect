@@ -144,8 +144,9 @@ export default function BookingModal({ therapists, onClose, onBooked }) {
         )}
 
         <p className="mt-4 text-xs text-mist">
-          Tap a time to book it instantly for your child — once picked, that slot is no longer offered to
-          other families.
+          Tap a time to request it for your child — the clinic will review and confirm it
+          shortly. Once picked, that slot is no longer offered to other families while it's
+          under review.
         </p>
       </div>
     </div>

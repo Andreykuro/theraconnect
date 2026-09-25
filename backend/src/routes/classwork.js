@@ -63,6 +63,7 @@ function present(row) {
     submission_url: fileUrl(row.submission_filename),
     submitted_at: row.submitted_at,
     points_earned: row.points_earned,
+    star_rating: row.star_rating,
     feedback: row.feedback,
     graded_at: row.graded_at,
     created_at: row.created_at,
@@ -169,7 +170,10 @@ router.post(
       ? req.body.category.trim()
       : client.service_type;
     const dueDate = typeof req.body?.due_date === "string" && req.body.due_date ? req.body.due_date : null;
-    const pointsPossible = Number(req.body?.points_possible);
+    // Bunga ng old points system - hindi na ito tinatanong sa form (star
+    // rating na ang gamit sa pag-grade), pero itinatago pa rin ang column
+    // kung sakaling may lumang code na umaasa dito. Optional na, default 5.
+    const pointsPossible = req.body?.points_possible !== undefined ? Number(req.body.points_possible) : 5;
 
     if (!title) return res.status(400).json({ error: "A title is required" });
     if (title.length > 150 || instructions.length > 3000) {
@@ -219,17 +223,17 @@ router.post("/:id/grade", requireAuth, requireRole("admin", "therapist"), (req, 
     return res.status(400).json({ error: "The family hasn't marked this done yet" });
   }
 
-  const pointsEarned = Number(req.body?.points_earned);
+  const starRating = Number(req.body?.star_rating);
   const feedback = typeof req.body?.feedback === "string" ? req.body.feedback.trim().slice(0, 2000) : "";
 
-  if (!Number.isInteger(pointsEarned) || pointsEarned < 0 || pointsEarned > item.points_possible) {
-    return res.status(400).json({ error: `Points must be a whole number between 0 and ${item.points_possible}` });
+  if (!Number.isInteger(starRating) || starRating < 1 || starRating > 5) {
+    return res.status(400).json({ error: "Star rating must be a whole number from 1 to 5" });
   }
 
   db.prepare(
-    `UPDATE classwork SET status = 'graded', points_earned = ?, feedback = ?, graded_at = datetime('now')
+    `UPDATE classwork SET status = 'graded', star_rating = ?, feedback = ?, graded_at = datetime('now')
      WHERE id = ?`
-  ).run(pointsEarned, feedback || null, item.id);
+  ).run(starRating, feedback || null, item.id);
 
   res.json(present(db.prepare(SELECT_BASE + " WHERE cw.id = ?").get(item.id)));
 });

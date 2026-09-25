@@ -7,9 +7,10 @@ import { PuzzleIcon, Sparkles, Star } from "lucide-react";
 // Tema: unang tunog ng bata ("ba", "ma") sa speech bubble + letter tile + puzzle,
 // para connected pa rin sa speech therapy at hindi lang random na hugis.
 
-// Gutter = espasyo sa gilid ng content (50% ng screen minus kalahati ng max-w-6xl, 36rem)
+// Gutter = espasyo sa gilid ng content (50% ng screen minus kalahati ng
+// content max-width, na ngayon 88rem na sa Home.jsx - kaya 44rem dito)
 const GUTTER =
-  "pointer-events-none absolute inset-y-0 z-0 hidden w-[calc(50%-36rem)] min-[1400px]:block";
+  "pointer-events-none absolute inset-y-0 z-0 hidden w-[calc(50%-44rem)] min-[1550px]:block";
 
 const BUBBLE_TONES = {
   sky: { bubble: "bg-therafun-sky-light text-therafun-sky-dark", tail: "bg-therafun-sky-light" },

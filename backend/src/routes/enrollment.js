@@ -59,6 +59,19 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+const MIN_AGE_YEARS = 2;
+
+// Buong taon lang ang tinitignan dito (year/month/day), hindi oras - kaya
+// gumagamit ng simpleng date math sa halip na ms-per-day division.
+function ageInYears(birthdate, onDate = new Date()) {
+  const [y, m, d] = birthdate.split("-").map(Number);
+  let age = onDate.getFullYear() - y;
+  const hadBirthdayThisYear =
+    onDate.getMonth() + 1 > m || (onDate.getMonth() + 1 === m && onDate.getDate() >= d);
+  if (!hadBirthdayThisYear) age -= 1;
+  return age;
+}
+
 function tokenFor(user) {
   const payload = {
     id: user.id,
@@ -96,7 +109,7 @@ router.post("/", (req, res) => {
   const patient_name = text(req.body?.patient_name);
   const birthdate = text(req.body?.birthdate);
   const service_type = text(req.body?.service_type);
-  const therapist_id = Number(req.body?.therapist_id);
+  const diagnosis = text(req.body?.diagnosis);
   const notes = text(req.body?.notes);
 
   if (!guardian_name || !guardian_phone_input || !email || !password || !patient_name || !birthdate) {
@@ -104,8 +117,16 @@ router.post("/", (req, res) => {
       error: "Guardian, contact, credentials, and patient information are required",
     });
   }
-  if (!service_type || !Number.isInteger(therapist_id) || therapist_id < 1) {
-    return res.status(400).json({ error: "Please choose a treatment and therapist" });
+  if (!service_type) {
+    return res.status(400).json({ error: "Please choose a type of treatment" });
+  }
+  if (!diagnosis) {
+    return res.status(400).json({
+      error: "A doctor's diagnosis is required so the clinic can confirm the right kind of care",
+    });
+  }
+  if (diagnosis.length > 2000) {
+    return res.status(400).json({ error: "The diagnosis description is too long" });
   }
   if (!isValidEmail(email)) {
     return res.status(400).json({ error: "Please enter a valid email address" });
@@ -129,15 +150,17 @@ router.post("/", (req, res) => {
   if (normalizedBirthdate !== birthdate || parsedBirthdate > new Date()) {
     return res.status(400).json({ error: "Please enter a valid patient birthdate" });
   }
-
-  const therapist = db
-    .prepare("SELECT id, name, specialty, color FROM therapists WHERE id = ? AND active = 1")
-    .get(therapist_id);
-  if (!therapist) {
-    return res.status(400).json({ error: "The selected therapist is no longer available" });
+  if (ageInYears(normalizedBirthdate) < MIN_AGE_YEARS) {
+    return res.status(400).json({
+      error: `The patient must be at least ${MIN_AGE_YEARS} years old to register`,
+    });
   }
-  if (therapist.specialty !== service_type) {
-    return res.status(400).json({ error: "The selected therapist does not offer that treatment" });
+
+  const hasTherapistForService = db
+    .prepare("SELECT 1 FROM therapists WHERE specialty = ? AND active = 1 LIMIT 1")
+    .get(service_type);
+  if (!hasTherapistForService) {
+    return res.status(400).json({ error: "That treatment isn't currently offered" });
   }
 
   const existing = db.prepare("SELECT id FROM users WHERE lower(email) = lower(?)").get(email);
@@ -158,8 +181,8 @@ router.post("/", (req, res) => {
         .prepare(
           `INSERT INTO clients
              (name, birthdate, service_type, guardian_name, guardian_phone,
-              guardian_email, therapist_id, user_id, notes)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+              guardian_email, therapist_id, user_id, notes, status, diagnosis)
+           VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, 'pending', ?)`
         )
         .run(
           patient_name,
@@ -168,9 +191,9 @@ router.post("/", (req, res) => {
           guardian_name,
           guardian_phone,
           email,
-          therapist.id,
           userInfo.lastInsertRowid,
-          notes || null
+          notes || null,
+          diagnosis
         );
 
       return {
@@ -184,12 +207,7 @@ router.post("/", (req, res) => {
     res.status(201).json({
       token: auth.token,
       user: auth.payload,
-      enrollment: {
-        ...client,
-        therapist_name: therapist.name,
-        therapist_specialty: therapist.specialty,
-        therapist_color: therapist.color,
-      },
+      enrollment: client,
     });
   } catch (error) {
     if (String(error.message).includes("UNIQUE constraint failed")) {

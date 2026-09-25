@@ -17,7 +17,6 @@ export default function ClassworkModal({ client, onClose, onSaved }) {
   const [instructions, setInstructions] = useState("");
   const [category, setCategory] = useState(client.service_type || CATEGORIES[0]);
   const [dueDate, setDueDate] = useState("");
-  const [points, setPoints] = useState(10);
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -37,7 +36,6 @@ export default function ClassworkModal({ client, onClose, onSaved }) {
       formData.append("instructions", instructions.trim());
       formData.append("category", category);
       if (dueDate) formData.append("due_date", dueDate);
-      formData.append("points_possible", String(points));
       if (file) formData.append("file", file);
 
       await api.post(`/classwork/clients/${client.id}`, formData);
@@ -96,26 +94,15 @@ export default function ClassworkModal({ client, onClose, onSaved }) {
                 ))}
               </select>
             </Field>
-            <Field label="Points">
+            <Field label="Due date" hint="Optional">
               <input
-                type="number"
-                min="0"
-                max="1000"
-                value={points}
-                onChange={(e) => setPoints(e.target.value)}
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
                 className="w-full rounded-lg border border-mist-light px-3 py-2 text-sm outline-none focus:border-harbor"
               />
             </Field>
           </div>
-
-          <Field label="Due date" hint="Optional">
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="w-full rounded-lg border border-mist-light px-3 py-2 text-sm outline-none focus:border-harbor"
-            />
-          </Field>
 
           <Field label="Worksheet" hint="Optional · image or PDF">
             <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-mist-light px-3 py-2.5 text-sm text-mist transition hover:border-harbor hover:text-harbor">

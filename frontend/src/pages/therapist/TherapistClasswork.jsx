@@ -4,6 +4,7 @@ import { ClipboardList, Plus, Paperclip, Image as ImageIcon, CheckCircle2 } from
 import api from "../../lib/api";
 import DashboardLayout from "../../components/DashboardLayout";
 import ClassworkModal from "../../components/ClassworkModal";
+import { StarRow, StarPicker } from "../../components/StarRating";
 
 const STATUS_STYLE = {
   assigned: "bg-amber-light text-amber",
@@ -129,18 +130,22 @@ export default function TherapistClasswork() {
 }
 
 function ClassworkRow({ item, grading, onStartGrade, onCancelGrade, onGraded }) {
-  const [points, setPoints] = useState(item.points_possible);
+  const [stars, setStars] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function submitGrade(e) {
     e.preventDefault();
+    if (!stars) {
+      setError("Please pick a star rating.");
+      return;
+    }
     setError("");
     setSaving(true);
     try {
       await api.post(`/classwork/${item.id}/grade`, {
-        points_earned: Number(points),
+        star_rating: stars,
         feedback,
       });
       onGraded();
@@ -203,9 +208,7 @@ function ClassworkRow({ item, grading, onStartGrade, onCancelGrade, onGraded }) 
 
       {item.status === "graded" && (
         <div className="mt-3 rounded-xl bg-harbor-light p-3">
-          <p className="font-display text-sm font-bold text-harbor-dark">
-            {item.points_earned} / {item.points_possible} points
-          </p>
+          <StarRow value={item.star_rating} />
           {item.feedback && <p className="mt-1 text-sm text-ink">{item.feedback}</p>}
         </div>
       )}
@@ -221,23 +224,15 @@ function ClassworkRow({ item, grading, onStartGrade, onCancelGrade, onGraded }) 
 
       {item.status === "submitted" && grading && (
         <form onSubmit={submitGrade} className="mt-3 space-y-2 border-t border-mist-light pt-3">
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-mist">Points</label>
-            <input
-              type="number"
-              min="0"
-              max={item.points_possible}
-              value={points}
-              onChange={(e) => setPoints(e.target.value)}
-              className="w-20 rounded-lg border border-mist-light px-2 py-1 text-sm outline-none focus:border-harbor"
-            />
-            <span className="text-xs text-mist">/ {item.points_possible}</span>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-mist">Star rating</label>
+            <StarPicker value={stars} onChange={setStars} />
           </div>
           <textarea
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             rows={2}
-            placeholder="Feedback for the family (optional)"
+            placeholder="Remarks for the family (optional)"
             className="w-full resize-none rounded-lg border border-mist-light px-3 py-2 text-sm outline-none focus:border-harbor"
           />
           {error && <p className="text-xs text-coral-red">{error}</p>}

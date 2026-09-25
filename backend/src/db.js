@@ -35,17 +35,25 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS clients (
-  id             INTEGER PRIMARY KEY AUTOINCREMENT,
-  name           TEXT NOT NULL,
-  birthdate      TEXT,
-  service_type   TEXT NOT NULL DEFAULT 'Speech Therapy',
-  guardian_name  TEXT NOT NULL,
-  guardian_phone TEXT NOT NULL,
-  guardian_email TEXT,
-  therapist_id   INTEGER REFERENCES therapists(id),
-  user_id        INTEGER REFERENCES users(id),
-  notes          TEXT,
-  created_at     TEXT NOT NULL DEFAULT (datetime('now'))
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  name              TEXT NOT NULL,
+  birthdate         TEXT,
+  service_type      TEXT NOT NULL DEFAULT 'Speech Therapy',
+  guardian_name     TEXT NOT NULL,
+  guardian_phone    TEXT NOT NULL,
+  guardian_email    TEXT,
+  therapist_id      INTEGER REFERENCES therapists(id),
+  user_id           INTEGER REFERENCES users(id),
+  notes             TEXT,
+  -- Registration review: self-service signups start 'pending' until admin
+  -- checks the diagnosis and the system auto-assigns a therapist; clients
+  -- added directly by an admin/therapist default to 'active' (already vetted).
+  status            TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('pending','active','rejected')),
+  diagnosis         TEXT,
+  rejection_reason  TEXT,
+  reviewed_by       INTEGER REFERENCES users(id),
+  reviewed_at       TEXT,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS appointments (
@@ -55,7 +63,10 @@ CREATE TABLE IF NOT EXISTS appointments (
   service_type  TEXT NOT NULL,
   start_time    TEXT NOT NULL,
   end_time      TEXT NOT NULL,
-  status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','confirmed','cancelled','completed')),
+  -- 'requested'  = parent self-booked, awaiting admin approval
+  -- 'pending'    = admin scheduled it directly, awaiting parent confirmation
+  -- 'confirmed'  = locked in (either parent confirmed, or admin approved a request)
+  status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('requested','pending','confirmed','cancelled','completed')),
   notes         TEXT,
   created_by    INTEGER REFERENCES users(id),
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
@@ -185,6 +196,10 @@ CREATE TABLE IF NOT EXISTS classwork (
   submission_mime_type TEXT,
   submitted_at        TEXT,
   points_earned       INTEGER,
+  -- 1-5 star rating replaces points as the family-facing grade; kept
+  -- separate from points_possible/points_earned so existing rows are
+  -- unaffected. NULL until the therapist grades the submission.
+  star_rating         INTEGER CHECK (star_rating IS NULL OR (star_rating BETWEEN 1 AND 5)),
   feedback            TEXT,
   graded_at           TEXT,
   created_by          INTEGER REFERENCES users(id),
@@ -233,10 +248,10 @@ function persistNow() {
 
 function isPlainParamsObject(params) {
   return (
-    params.length === 1 &&
-    params[0] !== null &&
-    typeof params[0] === "object" &&
-    !Array.isArray(params[0])
+      params.length === 1 &&
+      params[0] !== null &&
+      typeof params[0] === "object" &&
+      !Array.isArray(params[0])
   );
 }
 
@@ -325,6 +340,80 @@ wrapper.transaction = (fn) => {
   };
 };
 
+// Lightweight, idempotent migration for data.sqlite files created before a
+// schema change - CREATE TABLE IF NOT EXISTS only applies to brand-new
+// files, so an existing file needs its columns/constraints patched in place.
+// Safe to run on every boot: each step first checks whether it's already
+// been applied before doing anything.
+function migrate() {
+  function hasColumn(table, column) {
+    const rows = sqljsDb.exec(`PRAGMA table_info(${table})`);
+    if (!rows[0]) return false;
+    const idx = rows[0].columns.indexOf("name");
+    return rows[0].values.some((row) => row[idx] === column);
+  }
+
+  function tableSql(table) {
+    const rows = sqljsDb.exec(
+        `SELECT sql FROM sqlite_master WHERE type='table' AND name='${table}'`
+    );
+    return rows[0]?.values?.[0]?.[0] || "";
+  }
+
+  // --- additive columns: plain ALTER TABLE, one guard each ---
+  if (!hasColumn("clients", "status")) {
+    sqljsDb.exec(
+        `ALTER TABLE clients ADD COLUMN status TEXT NOT NULL DEFAULT 'active';`
+    );
+  }
+  if (!hasColumn("clients", "diagnosis")) {
+    sqljsDb.exec(`ALTER TABLE clients ADD COLUMN diagnosis TEXT;`);
+  }
+  if (!hasColumn("clients", "rejection_reason")) {
+    sqljsDb.exec(`ALTER TABLE clients ADD COLUMN rejection_reason TEXT;`);
+  }
+  if (!hasColumn("clients", "reviewed_by")) {
+    sqljsDb.exec(`ALTER TABLE clients ADD COLUMN reviewed_by INTEGER REFERENCES users(id);`);
+  }
+  if (!hasColumn("clients", "reviewed_at")) {
+    sqljsDb.exec(`ALTER TABLE clients ADD COLUMN reviewed_at TEXT;`);
+  }
+  if (!hasColumn("classwork", "star_rating")) {
+    sqljsDb.exec(
+        `ALTER TABLE classwork ADD COLUMN star_rating INTEGER CHECK (star_rating IS NULL OR (star_rating BETWEEN 1 AND 5));`
+    );
+  }
+
+  // --- CHECK constraint change: SQLite can't ALTER a CHECK in place, so
+  // rebuild the table only if the old constraint (without 'requested') is
+  // still the one on disk. FK enforcement has to be off for the rebuild:
+  // RENAME makes other tables' FKs point at appointments_old, and DROP TABLE
+  // does an implicit delete that gets checked against session_notes /
+  // notifications_log rows still referencing those old appointment ids. ---
+  const apptSql = tableSql("appointments");
+  if (apptSql && !apptSql.includes("'requested'")) {
+    sqljsDb.exec(`
+      PRAGMA foreign_keys = OFF;
+      ALTER TABLE appointments RENAME TO appointments_old;
+      CREATE TABLE appointments (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id     INTEGER NOT NULL REFERENCES clients(id),
+        therapist_id  INTEGER NOT NULL REFERENCES therapists(id),
+        service_type  TEXT NOT NULL,
+        start_time    TEXT NOT NULL,
+        end_time      TEXT NOT NULL,
+        status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('requested','pending','confirmed','cancelled','completed')),
+        notes         TEXT,
+        created_by    INTEGER REFERENCES users(id),
+        created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      INSERT INTO appointments SELECT * FROM appointments_old;
+      DROP TABLE appointments_old;
+      PRAGMA foreign_keys = ON;
+    `);
+  }
+}
+
 wrapper.ready = (async () => {
   const SQL = await initSqlJs({
     locateFile: (file) => path.join(__dirname, "..", "node_modules", "sql.js", "dist", file),
@@ -334,6 +423,7 @@ wrapper.ready = (async () => {
   sqljsDb = new SQL.Database(existing);
   sqljsDb.exec("PRAGMA foreign_keys = ON;");
   sqljsDb.exec(SCHEMA_SQL);
+  migrate();
   persistNow();
 
   return wrapper;

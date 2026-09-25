@@ -6,6 +6,7 @@ import {
   CalendarDays,
   ClipboardList,
   Home,
+  Inbox,
   LogOut,
   Megaphone,
   MessageCircle,
@@ -19,6 +20,7 @@ const NAV = {
   admin: [
     { to: "/admin", label: "Schedule", icon: CalendarDays, end: true },
     { to: "/admin/clients", label: "Clients", icon: Users },
+    { to: "/admin/registrations", label: "Registrations", icon: Inbox },
     { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
     { to: "/admin/notifications", label: "Notification log", icon: Bell },
     { to: "/admin/automation", label: "Automation center", icon: BrainCircuit },

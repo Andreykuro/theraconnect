@@ -15,6 +15,7 @@ async function main() {
   const enrollmentRoutes = require("./routes/enrollment");
   const progressRoutes = require("./routes/progress");
   const dashboardRoutes = require("./routes/dashboard");
+  const registrationsRoutes = require("./routes/registrations");
   const automationRoutes = require("./routes/automation");
   const appointmentRoutes = require("./routes/appointments");
   const clientRoutes = require("./routes/clients");
@@ -39,6 +40,7 @@ async function main() {
   app.use("/api/enrollment", enrollmentRoutes);
   app.use("/api/progress", progressRoutes);
   app.use("/api/dashboard", dashboardRoutes);
+  app.use("/api/registrations", registrationsRoutes);
   app.use("/api/automation", automationRoutes);
   app.use("/api/appointments", appointmentRoutes);
   app.use("/api/clients", clientRoutes);

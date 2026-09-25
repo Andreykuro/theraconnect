@@ -113,6 +113,9 @@ export default function ParentEnrollment() {
                   />
                 </div>
                 <div className="mt-4">
+                  <Detail label="Doctor's diagnosis" value={enrollment.diagnosis || "Not provided"} />
+                </div>
+                <div className="mt-4">
                   <Detail
                     label="Notes for the therapist"
                     value={enrollment.notes || "No additional notes were provided."}

@@ -27,7 +27,7 @@ function truncate(text, max = 60) {
 
 function parentsOwnClient(userId) {
   return db
-    .prepare("SELECT id FROM clients WHERE user_id = ? ORDER BY id ASC LIMIT 1")
+    .prepare("SELECT * FROM clients WHERE user_id = ? ORDER BY id ASC LIMIT 1")
     .get(userId);
 }
 
@@ -37,6 +37,17 @@ function parentHome(req, res) {
   const client = parentsOwnClient(req.user.id);
   if (!client) {
     return res.status(404).json({ error: "No patient profile is linked to this account" });
+  }
+
+  // Registration still under review (or was turned down) - none of the
+  // usual dashboard data applies yet, so hand back a minimal status payload
+  // instead. The frontend shows a dedicated waiting/declined screen for this.
+  if (client.status !== "active") {
+    return res.json({
+      status: client.status,
+      client_name: client.name,
+      rejection_reason: client.rejection_reason || null,
+    });
   }
 
   const progress = progressForClient(client.id, "parent");
@@ -108,6 +119,7 @@ function parentHome(req, res) {
   ]);
 
   res.json({
+    status: "active",
     client: progress.client,
     overall_progress: progress.overall_progress,
     goals: activeGoals,
@@ -188,6 +200,22 @@ function therapistHome(req, res) {
 function adminHome(req, res) {
   const now = new Date().toISOString();
 
+  const requested = db
+    .prepare(
+      `SELECT a.id, a.service_type, a.start_time, c.name AS client_name
+       FROM appointments a JOIN clients c ON c.id = a.client_id
+       WHERE a.status = 'requested'
+       ORDER BY a.created_at ASC LIMIT 5`
+    )
+    .all();
+
+  const pendingRegistrations = db
+    .prepare(
+      `SELECT id, name, service_type, created_at FROM clients
+       WHERE status = 'pending' ORDER BY created_at ASC LIMIT 5`
+    )
+    .all();
+
   const pending = db
     .prepare(
       `SELECT a.id, a.service_type, a.start_time, c.name AS client_name
@@ -219,6 +247,22 @@ function adminHome(req, res) {
     .all(now);
 
   const notifications = sortNotifications([
+    ...requested.map((a) => ({
+      id: `req-${a.id}`,
+      type: "confirm",
+      priority: "high",
+      message: `${a.client_name} requested a ${a.service_type} session - needs your approval`,
+      created_at: a.start_time,
+      link: "/admin",
+    })),
+    ...pendingRegistrations.map((c) => ({
+      id: `reg-${c.id}`,
+      type: "schedule",
+      priority: "high",
+      message: `${c.name}'s registration (${c.service_type}) is awaiting review`,
+      created_at: c.created_at,
+      link: "/admin/registrations",
+    })),
     ...unscheduled.map((c) => ({
       id: `unsched-${c.id}`,
       type: "schedule",
@@ -246,6 +290,8 @@ function adminHome(req, res) {
   ]);
 
   res.json({
+    appointment_requests: requested.length,
+    pending_registrations: pendingRegistrations.length,
     pending_confirmations: pending.length,
     unscheduled_clients: unscheduled.length,
     overdue_notes: overdueNotes.length,

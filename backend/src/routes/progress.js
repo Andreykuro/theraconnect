@@ -108,14 +108,36 @@ function progressForClient(clientId, role) {
   });
 
   const measuredGoals = goalsWithProgress.filter((goal) => goal.progress_percent !== null);
-  const overall_progress = measuredGoals.length
-    ? Number(
-        (
-          measuredGoals.reduce((total, goal) => total + goal.progress_percent, 0) /
-          measuredGoals.length
-        ).toFixed(1)
-      )
+  const goalProgressAvg = measuredGoals.length
+    ? measuredGoals.reduce((total, goal) => total + goal.progress_percent, 0) / measuredGoals.length
     : null;
+
+  // Classwork stars fold into overall progress too - consistent home
+  // practice is part of how therapy actually progresses, not just what
+  // happens in-session. Weighted 80/20 (goals/classwork) so a light
+  // homework week never overrides the clinical measurements; if nothing's
+  // graded yet, overall_progress is goal-only (no homework penalty for a
+  // brand-new plan).
+  const starRow = db
+    .prepare(
+      `SELECT AVG(star_rating) AS avg_stars, COUNT(*) AS graded_count
+       FROM classwork WHERE client_id = ? AND status = 'graded' AND star_rating IS NOT NULL`
+    )
+    .get(clientId);
+  const classworkScore =
+    starRow.graded_count > 0 ? (Number(starRow.avg_stars) / 5) * 100 : null;
+
+  const CLASSWORK_WEIGHT = 0.2;
+  let overall_progress = null;
+  if (goalProgressAvg !== null && classworkScore !== null) {
+    overall_progress = Number(
+      (goalProgressAvg * (1 - CLASSWORK_WEIGHT) + classworkScore * CLASSWORK_WEIGHT).toFixed(1)
+    );
+  } else if (goalProgressAvg !== null) {
+    overall_progress = Number(goalProgressAvg.toFixed(1));
+  } else if (classworkScore !== null) {
+    overall_progress = Number(classworkScore.toFixed(1));
+  }
 
   const notes =
     role === "parent"

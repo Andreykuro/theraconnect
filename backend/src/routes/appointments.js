@@ -127,10 +127,12 @@ router.post("/book", requireAuth, requireRole("parent"), (req, res) => {
     return res.status(409).json({ error: "Sorry, that slot was just taken. Please pick another." });
   }
 
+  // Requested lang, hindi agad 'confirmed' - kailangan munang aprubahan ng
+  // admin bago ito opisyal (see /:id/approve below).
   const info = db
     .prepare(
       `INSERT INTO appointments (client_id, therapist_id, service_type, start_time, end_time, status, created_by)
-       VALUES (?, ?, ?, ?, ?, 'confirmed', ?)`
+       VALUES (?, ?, ?, ?, ?, 'requested', ?)`
     )
     .run(client.id, therapist_id, service_type, start_time, end_time, req.user.id);
 
@@ -139,7 +141,7 @@ router.post("/book", requireAuth, requireRole("parent"), (req, res) => {
   sendSMS({
     to: appt.guardian_phone,
     appointmentId: appt.id,
-    message: `You're booked! ${appt.service_type} with ${appt.therapist_name} on ${appt.start_time}. See you then!`,
+    message: `We got your request! ${appt.service_type} with ${appt.therapist_name} on ${appt.start_time}. We'll text you once the clinic confirms it.`,
   }).catch(() => {});
 
   res.status(201).json(appt);
@@ -204,6 +206,47 @@ router.put("/:id", requireAuth, requireRole("admin", "therapist"), (req, res) =>
   }).catch(() => {});
 
   res.json(appt);
+});
+
+// POST /api/appointments/:id/approve  (admin approves a self-service request)
+router.post("/:id/approve", requireAuth, requireRole("admin"), (req, res) => {
+  const appt = db.prepare("SELECT * FROM appointments WHERE id = ?").get(req.params.id);
+  if (!appt) return res.status(404).json({ error: "Appointment not found" });
+  if (appt.status !== "requested") {
+    return res.status(400).json({ error: "This request has already been reviewed" });
+  }
+
+  db.prepare("UPDATE appointments SET status = 'confirmed' WHERE id = ?").run(appt.id);
+  const updated = db.prepare(withDetails + " WHERE a.id = ?").get(appt.id);
+
+  sendSMS({
+    to: updated.guardian_phone,
+    appointmentId: updated.id,
+    message: `Confirmed! Your ${updated.service_type} with ${updated.therapist_name} on ${updated.start_time} is set. See you then!`,
+  }).catch(() => {});
+
+  res.json(updated);
+});
+
+// POST /api/appointments/:id/decline  (admin declines a self-service request)
+router.post("/:id/decline", requireAuth, requireRole("admin"), (req, res) => {
+  const appt = db.prepare("SELECT * FROM appointments WHERE id = ?").get(req.params.id);
+  if (!appt) return res.status(404).json({ error: "Appointment not found" });
+  if (appt.status !== "requested") {
+    return res.status(400).json({ error: "This request has already been reviewed" });
+  }
+
+  db.prepare("UPDATE appointments SET status = 'cancelled' WHERE id = ?").run(appt.id);
+  const updated = db.prepare(withDetails + " WHERE a.id = ?").get(appt.id);
+
+  const reason = typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
+  sendSMS({
+    to: updated.guardian_phone,
+    appointmentId: updated.id,
+    message: `Sorry, we're unable to confirm the ${updated.service_type} request for ${updated.start_time}${reason ? ` (${reason})` : ""}. Please pick another time.`,
+  }).catch(() => {});
+
+  res.json(updated);
 });
 
 // POST /api/appointments/:id/confirm  (parent confirms attendance)

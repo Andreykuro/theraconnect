@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -24,9 +24,18 @@
   --color-therafun-lime-dark: #536A00;
   --color-therafun-lime-light: #F3F9D7;
 
+  /* Two typefaces only: Fraunces for display/headings, Plus Jakarta Sans for
+     everything else. --font-mono used to load a third face (JetBrains Mono)
+     just for numbers/dates/badges - it now reuses the body font instead,
+     with tabular figures turned on so numbers still line up in columns. */
   --font-display: 'Fraunces', ui-serif, Georgia, serif;
   --font-body: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-mono: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-mono {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 html, body, #root {

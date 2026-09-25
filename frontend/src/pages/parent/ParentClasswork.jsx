@@ -3,6 +3,7 @@ import { format, parseISO } from "date-fns";
 import { ClipboardList, Paperclip, Image as ImageIcon, Upload, Sparkles } from "lucide-react";
 import api from "../../lib/api";
 import DashboardLayout from "../../components/DashboardLayout";
+import { StarRow } from "../../components/StarRating";
 
 const STATUS_STYLE = {
   assigned: "bg-amber-light text-amber",
@@ -123,8 +124,6 @@ function ClassworkCard({ item, onSubmitted }) {
         </a>
       )}
 
-      <p className="mt-2 text-xs font-semibold text-mist">{item.points_possible} points possible</p>
-
       {item.status === "assigned" && !showForm && (
         <button
           onClick={() => setShowForm(true)}
@@ -195,10 +194,13 @@ function ClassworkCard({ item, onSubmitted }) {
         <div className="mt-3 flex items-start gap-2 rounded-xl bg-harbor-light p-3">
           <Sparkles size={15} className="mt-0.5 flex-shrink-0 text-harbor-dark" />
           <div>
-            <p className="font-display text-sm font-bold text-harbor-dark">
-              {item.points_earned} / {item.points_possible} points
-            </p>
-            {item.feedback && <p className="mt-1 text-sm text-ink">{item.feedback}</p>}
+            <StarRow value={item.star_rating} />
+            {item.feedback && (
+              <p className="mt-1.5 text-sm text-ink">
+                <span className="font-semibold text-harbor-dark">Remarks: </span>
+                {item.feedback}
+              </p>
+            )}
           </div>
         </div>
       )}
