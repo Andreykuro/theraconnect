@@ -13,8 +13,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    // Wag i-redirect kapag galing mismo sa login request (mali ang password),
-    // kasi mare-reload ang page at mawawala yung error message sa login form
+
     const isLoginRequest = err.config?.url?.includes("/auth/login");
 
     if (err.response?.status === 401 && !isLoginRequest) {

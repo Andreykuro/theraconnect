@@ -5,6 +5,7 @@ import {
   BrainCircuit,
   CalendarDays,
   ClipboardList,
+  Home,
   LogOut,
   Megaphone,
   MessageCircle,
@@ -29,7 +30,8 @@ const NAV = {
     { to: "/therapist/messages", label: "Messages", icon: MessageCircle },
   ],
   parent: [
-    { to: "/parent", label: "My appointments", icon: CalendarDays, end: true },
+    { to: "/parent", label: "Home", icon: Home, end: true },
+    { to: "/parent/appointments", label: "Appointments", icon: CalendarDays },
     { to: "/parent/progress", label: "Child progress", icon: BarChart3 },
     { to: "/parent/classwork", label: "Classwork", icon: ClipboardList },
     { to: "/parent/messages", label: "Messages", icon: MessageCircle },

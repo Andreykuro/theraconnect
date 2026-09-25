@@ -5,7 +5,7 @@ import { animate, stagger, spring } from "animejs";
 import BrandLogo from "./BrandLogo";
 import { prefersReducedMotion } from "../lib/motion";
 
-// Isang listahan lang para sa desktop nav at sa mobile menu para hindi nagkakaiba
+
 const LINKS = [
   { href: "#top", label: "Home" },
   { href: "#services", label: "Services" },

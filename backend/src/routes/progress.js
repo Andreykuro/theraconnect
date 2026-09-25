@@ -2,6 +2,7 @@ const express = require("express");
 const db = require("../db");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { generateNoteDraft } = require("../services/noteAssistant");
+const { forecastGoal } = require("../services/progressForecast");
 
 const router = express.Router();
 const METRIC_TYPES = new Set(["accuracy", "frequency", "duration", "rating", "assistance"]);
@@ -92,11 +93,16 @@ function progressForClient(clientId, role) {
       )
       .all(goal.id);
     const latest = measurements[measurements.length - 1] || null;
+    // Sessions-to-target forecast - linear-trend extrapolation, active goals lang
+    const { forecast, note: forecast_note } =
+      goal.status === "active" ? forecastGoal(goal, measurements) : { forecast: null, note: null };
     return {
       ...goal,
       current_value: latest?.value ?? null,
       progress_percent: progressPercent(goal, latest?.value),
       trend: trendFor(goal, measurements),
+      forecast,
+      forecast_note,
       measurements,
     };
   });
@@ -440,3 +446,7 @@ router.post(
 );
 
 module.exports = router;
+// Bukas din ang helper functions na 'to para magamit ulit ng dashboard.js -
+// wag na ulitin yung parehong client + progress query doon.
+module.exports.getClient = getClient;
+module.exports.progressForClient = progressForClient;

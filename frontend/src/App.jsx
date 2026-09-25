@@ -15,6 +15,7 @@ import TherapistProgress from "./pages/therapist/TherapistProgress";
 import TherapistClasswork from "./pages/therapist/TherapistClasswork";
 import TherapistMessages from "./pages/therapist/TherapistMessages";
 import ParentDashboard from "./pages/parent/ParentDashboard";
+import ParentHome from "./pages/parent/ParentHome";
 import ParentEnrollment from "./pages/parent/ParentEnrollment";
 import ParentProgress from "./pages/parent/ParentProgress";
 import ParentClasswork from "./pages/parent/ParentClasswork";
@@ -116,6 +117,14 @@ export default function App() {
 
           <Route
             path="/parent"
+            element={
+              <ProtectedRoute roles={["parent"]}>
+                <ParentHome />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/parent/appointments"
             element={
               <ProtectedRoute roles={["parent"]}>
                 <ParentDashboard />

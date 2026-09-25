@@ -1,4 +1,5 @@
-import { AlertTriangle, CircleDashed, Minus, TrendingUp } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { AlertTriangle, CircleDashed, Minus, Sparkles, TrendingUp } from "lucide-react";
 
 const TREND = {
   improving: { label: "Improving", icon: TrendingUp, className: "bg-harbor-light text-harbor-dark" },
@@ -55,6 +56,18 @@ export default function ProgressGoalCard({ goal, compact = false }) {
         />
         <Metric label="Target" value={`${goal.target} ${goal.unit}`} />
       </div>
+
+      {goal.forecast && (
+        <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-sunrise-light px-2.5 py-2 text-xs font-semibold text-sunrise">
+          <Sparkles size={13} className="mt-0.5 flex-shrink-0" />
+          <span>
+            About {goal.forecast.sessions_remaining} more session
+            {goal.forecast.sessions_remaining === 1 ? "" : "s"} to reach the target
+            {goal.forecast.projected_date &&
+              ` · around ${format(parseISO(goal.forecast.projected_date), "MMM d")}`}
+          </span>
+        </p>
+      )}
 
       {!compact && goal.measurements?.length > 0 && (
         <p className="mt-3 border-t border-mist-light pt-3 text-xs text-mist">

@@ -3,6 +3,7 @@ import { Menu } from "lucide-react";
 import { animate, createScope } from "animejs";
 import Sidebar from "./Sidebar";
 import Chatbot from "./Chatbot";
+import NotificationBell from "./NotificationBell";
 import { prefersReducedMotion } from "../lib/motion";
 
 export default function DashboardLayout({ title, subtitle, actions, children }) {
@@ -70,7 +71,10 @@ export default function DashboardLayout({ title, subtitle, actions, children }) 
               {subtitle && <p className="truncate text-xs text-mist sm:text-sm">{subtitle}</p>}
             </div>
           </div>
-          {actions && <div className="flex-shrink-0">{actions}</div>}
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <NotificationBell />
+            {actions}
+          </div>
         </header>
         <main ref={mainRef} className="flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">{children}</main>
       </div>
