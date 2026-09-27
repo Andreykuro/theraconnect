@@ -5,7 +5,7 @@ import { animate, stagger, spring } from "animejs";
 import BrandLogo from "./BrandLogo";
 import { prefersReducedMotion } from "../lib/motion";
 
-
+// Isang listahan lang para sa desktop nav at sa mobile menu para hindi nagkakaiba
 const LINKS = [
   { href: "#top", label: "Home" },
   { href: "#services", label: "Services" },
@@ -83,12 +83,9 @@ export default function PublicNavbar() {
           scrolled ? "bg-white/90 shadow-sm backdrop-blur-md" : "bg-transparent"
         }`}
       >
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-[96rem] items-center justify-between px-4 py-3 sm:px-6">
           <a href="#top" className="flex items-center gap-3" aria-label="TheraFun Intervention Centre home">
             <BrandLogo eager className="h-12 w-auto sm:h-14" />
-            <span className="hidden rounded-full bg-harbor-light px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-harbor lg:inline">
-              TheraConnect
-            </span>
           </a>
 
           <nav className="hidden items-center gap-6 md:flex lg:gap-8">

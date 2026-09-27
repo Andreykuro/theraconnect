@@ -1,23 +1,15 @@
 import { PuzzleIcon, Sparkles, Star } from "lucide-react";
 
-// Side decor ng hero. Lumalabas lang sa malapad na screen (1400px pataas)
-// kasi doon lang talaga may blank na space sa gilid ng max-w-6xl na content.
-// Pang-design lang 'to: aria-hidden at hindi clickable.
-//
-// Tema: unang tunog ng bata ("ba", "ma") sa speech bubble + letter tile + puzzle,
-// para connected pa rin sa speech therapy at hindi lang random na hugis.
 
-// Gutter = espasyo sa gilid ng content (50% ng screen minus kalahati ng
-// content max-width, na ngayon 88rem na sa Home.jsx - kaya 44rem dito)
 const GUTTER =
-  "pointer-events-none absolute inset-y-0 z-0 hidden w-[calc(50%-44rem)] min-[1550px]:block";
+  "pointer-events-none absolute inset-y-0 z-0 hidden w-[calc(50%-48rem)] min-[1650px]:block";
 
 const BUBBLE_TONES = {
   sky: { bubble: "bg-therafun-sky-light text-therafun-sky-dark", tail: "bg-therafun-sky-light" },
   purple: { bubble: "bg-harbor-light text-harbor-dark", tail: "bg-harbor-light" },
 };
 
-// Speech bubble na may tail. Dalawa lang ang gumagalaw (float) para hindi magulo.
+// Speech bubble
 function SoundBubble({ text, tone, tail, className = "", floatDelay = "0s" }) {
   const t = BUBBLE_TONES[tone];
   return (

@@ -22,7 +22,7 @@ function SoundBars({ heights, color }) {
 // genuinely composed illustration rather than a centered logo on its own.
 export default function HeroArt({ className = "" }) {
   return (
-    <div className={`relative mx-auto aspect-square w-full max-w-md ${className}`}>
+    <div className={`relative mx-auto aspect-square w-full max-w-lg ${className}`}>
       <div className="blob-1 absolute inset-6 bg-harbor-light" />
       <div className="blob-2 absolute inset-12 bg-white shadow-xl ring-1 ring-mist-light" />
 
