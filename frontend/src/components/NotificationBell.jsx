@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { NavLink } from "react-router-dom";
 import { formatDistanceToNowStrict } from "date-fns";
 import {
@@ -11,8 +12,7 @@ import {
 } from "lucide-react";
 import api from "../lib/api";
 
-// Bawat notification "type" (galing sa /dashboard/home) may sariling icon at
-// badge color - kailangang literal ang class names dito (hindi ${}-built)
+
 // para makita ito ng Tailwind sa build time.
 const TYPE_ICON = {
   confirm: CalendarCheck,
@@ -39,11 +39,35 @@ const DOT_BG = {
 // "buhay" ang panel nang hindi sinasabayan ng sobrang dalas na request.
 const POLL_MS = 60000;
 
+const PANEL_WIDTH = 320; // w-80
+const VIEWPORT_MARGIN = 16; // pinakamaliit na puwang mula sa gilid ng screen
+
+// Ang dropdown ay pinoportal diretso sa <body> at ginagamitan ng
+// position:fixed na kino-compute mula sa aktwal na screen position ng bell
+// (getBoundingClientRect) - hindi na siya absolute-anchored sa button.
+// Bakit: ang DashboardLayout's scrollable wrapper ay may overflow-y-auto,
+// at pag ganito ang CSS, awtomatikong nagiging "clipped" din ang
+// horizontal overflow (kahit "position: absolute" pa ang anak) - kaya
+// pag maliit ang screen (mobile), naputol/di makita nang buo ang panel.
+// Sa fixed positioning + portal, wala nang ancestor na naka-clip dito.
+function computePosition(buttonEl) {
+  const rect = buttonEl.getBoundingClientRect();
+  const width = Math.min(PANEL_WIDTH, window.innerWidth - VIEWPORT_MARGIN * 2);
+  // Gusto muna nating i-right-align ang panel sa ilalim ng button (karaniwang
+  // dropdown behavior), pero kung uumapaw ito sa kaliwang gilid ng screen,
+  // i-clamp na lang papunta sa loob ng viewport.
+  let left = rect.right - width;
+  left = Math.max(VIEWPORT_MARGIN, Math.min(left, window.innerWidth - width - VIEWPORT_MARGIN));
+  return { top: rect.bottom + 8, left, width };
+}
+
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const boxRef = useRef(null);
+  const [position, setPosition] = useState(null);
+  const buttonRef = useRef(null);
+  const panelRef = useRef(null);
 
   const load = useCallback(async () => {
     try {
@@ -63,9 +87,28 @@ export default function NotificationBell() {
     return () => clearInterval(interval);
   }, [load]);
 
+  function openPanel() {
+    if (buttonRef.current) setPosition(computePosition(buttonRef.current));
+    setOpen(true);
+  }
+
+  // Header ay "sticky top-0", kaya hindi gumagalaw ang button habang
+  // nag-sscroll ang page - resize/orientation change lang ang kailangang
+  // pakinggan para panatilihing tama ang position ng portaled panel.
+  useEffect(() => {
+    if (!open) return undefined;
+    function onResize() {
+      if (buttonRef.current) setPosition(computePosition(buttonRef.current));
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [open]);
+
   useEffect(() => {
     function onClickOutside(event) {
-      if (boxRef.current && !boxRef.current.contains(event.target)) setOpen(false);
+      const clickedButton = buttonRef.current?.contains(event.target);
+      const clickedPanel = panelRef.current?.contains(event.target);
+      if (!clickedButton && !clickedPanel) setOpen(false);
     }
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
@@ -74,10 +117,11 @@ export default function NotificationBell() {
   const highCount = items.filter((item) => item.priority === "high").length;
 
   return (
-    <div ref={boxRef} className="relative">
+    <>
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? setOpen(false) : openPanel())}
         aria-label="Notifications"
         aria-expanded={open}
         className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-mist transition hover:bg-harbor-light hover:text-harbor"
@@ -92,52 +136,59 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-full z-40 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-mist-light">
-          <div className="border-b border-mist-light px-4 py-3">
-            <p className="font-display text-sm font-bold text-ink">Notifications</p>
-            <p className="text-xs text-mist">
-              {items.length === 0
-                ? "You're all caught up"
-                : `${items.length} thing${items.length === 1 ? "" : "s"} need a look`}
-            </p>
-          </div>
+      {open &&
+        position &&
+        createPortal(
+          <div
+            ref={panelRef}
+            style={{ top: position.top, left: position.left, width: position.width }}
+            className="fixed z-50 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-mist-light"
+          >
+            <div className="border-b border-mist-light px-4 py-3">
+              <p className="font-display text-sm font-bold text-ink">Notifications</p>
+              <p className="text-xs text-mist">
+                {items.length === 0
+                  ? "You're all caught up"
+                  : `${items.length} thing${items.length === 1 ? "" : "s"} need a look`}
+              </p>
+            </div>
 
-          <div className="max-h-96 overflow-y-auto">
-            {loading && <p className="px-4 py-6 text-center text-sm text-mist">Loading…</p>}
-            {!loading && items.length === 0 && (
-              <p className="px-4 py-6 text-center text-sm text-mist">Nothing new right now.</p>
-            )}
-            {items.map((item) => {
-              const Icon = TYPE_ICON[item.type] || Bell;
-              return (
-                <NavLink
-                  key={item.id}
-                  to={item.link || "#"}
-                  onClick={() => setOpen(false)}
-                  className="flex gap-3 border-b border-mist-light/70 px-4 py-3 text-left text-sm transition last:border-0 hover:bg-chalk"
-                >
-                  <span
-                    className={`mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg ${BADGE_BG[item.priority]}`}
+            <div className="max-h-96 overflow-y-auto">
+              {loading && <p className="px-4 py-6 text-center text-sm text-mist">Loading…</p>}
+              {!loading && items.length === 0 && (
+                <p className="px-4 py-6 text-center text-sm text-mist">Nothing new right now.</p>
+              )}
+              {items.map((item) => {
+                const Icon = TYPE_ICON[item.type] || Bell;
+                return (
+                  <NavLink
+                    key={item.id}
+                    to={item.link || "#"}
+                    onClick={() => setOpen(false)}
+                    className="flex gap-3 border-b border-mist-light/70 px-4 py-3 text-left text-sm transition last:border-0 hover:bg-chalk"
                   >
-                    <Icon size={14} className="text-ink" />
-                    <span className={`sr-only`}>{item.priority} priority</span>
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-ink">{item.message}</span>
-                    {item.created_at && (
-                      <span className="mt-0.5 flex items-center gap-1 text-xs text-mist">
-                        <span className={`h-1.5 w-1.5 rounded-full ${DOT_BG[item.priority]}`} />
-                        {formatDistanceToNowStrict(new Date(item.created_at), { addSuffix: true })}
-                      </span>
-                    )}
-                  </span>
-                </NavLink>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
+                    <span
+                      className={`mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg ${BADGE_BG[item.priority]}`}
+                    >
+                      <Icon size={14} className="text-ink" />
+                      <span className="sr-only">{item.priority} priority</span>
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-ink">{item.message}</span>
+                      {item.created_at && (
+                        <span className="mt-0.5 flex items-center gap-1 text-xs text-mist">
+                          <span className={`h-1.5 w-1.5 rounded-full ${DOT_BG[item.priority]}`} />
+                          {formatDistanceToNowStrict(new Date(item.created_at), { addSuffix: true })}
+                        </span>
+                      )}
+                    </span>
+                  </NavLink>
+                );
+              })}
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
   );
 }
