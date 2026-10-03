@@ -26,17 +26,40 @@ router.get("/:id", requireAuth, (req, res) => {
 });
 
 router.post("/", requireAuth, requireRole("admin"), (req, res) => {
-  const { name, birthdate, service_type, guardian_name, guardian_phone, guardian_email, therapist_id, notes } =
-    req.body || {};
+  const {
+    last_name,
+    first_name,
+    middle_name,
+    name: nameOverride,
+    birthdate,
+    service_type,
+    guardian_name,
+    guardian_phone,
+    guardian_email,
+    therapist_id,
+    notes,
+  } = req.body || {};
+
+  // Accept either the split last/first/middle fields (the enrollment-style
+  // form) or a single `name` (older callers/scripts) - whichever is given,
+  // `name` always ends up composed from the split fields when they exist.
+  const last = (last_name || "").trim();
+  const first = (first_name || "").trim();
+  const middle = (middle_name || "").trim();
+  const name = first || last ? [first, middle, last].filter(Boolean).join(" ").trim() : (nameOverride || "").trim();
+
   if (!name || !guardian_name || !guardian_phone) {
     return res.status(400).json({ error: "name, guardian_name and guardian_phone are required" });
   }
   const info = db
     .prepare(
-      `INSERT INTO clients (name, birthdate, service_type, guardian_name, guardian_phone, guardian_email, therapist_id, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO clients (last_name, first_name, middle_name, name, birthdate, service_type, guardian_name, guardian_phone, guardian_email, therapist_id, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
+      last,
+      first,
+      middle || null,
       name,
       birthdate || null,
       service_type || "Speech Therapy",
@@ -54,10 +77,23 @@ router.put("/:id", requireAuth, requireRole("admin"), (req, res) => {
   if (!existing) return res.status(404).json({ error: "Client not found" });
 
   const merged = { ...existing, ...req.body };
+  // If the split name fields changed, keep the composed `name` in sync.
+  const splitChanged =
+    "last_name" in req.body || "first_name" in req.body || "middle_name" in req.body;
+  if (splitChanged) {
+    merged.name = [merged.first_name, merged.middle_name, merged.last_name]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+  }
+
   db.prepare(
-    `UPDATE clients SET name=?, birthdate=?, service_type=?, guardian_name=?, guardian_phone=?, guardian_email=?, therapist_id=?, notes=?
+    `UPDATE clients SET last_name=?, first_name=?, middle_name=?, name=?, birthdate=?, service_type=?, guardian_name=?, guardian_phone=?, guardian_email=?, therapist_id=?, notes=?
      WHERE id=?`
   ).run(
+    merged.last_name || "",
+    merged.first_name || "",
+    merged.middle_name || null,
     merged.name,
     merged.birthdate,
     merged.service_type,

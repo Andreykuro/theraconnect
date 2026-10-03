@@ -38,7 +38,9 @@ const initialForm = {
   email: "",
   password: "",
   confirm_password: "",
-  patient_name: "",
+  last_name: "",
+  first_name: "",
+  middle_name: "",
   birthdate: "",
   diagnosis: "",
   service_type: "",
@@ -129,7 +131,8 @@ export default function Enrollment() {
   // pababayaang makarating sa dulo ang parent na may kulang o maling laman.
   function validateStep(index) {
     if (index === 0) {
-      if (!form.patient_name.trim()) return "Please enter the patient's full name.";
+      if (!form.last_name.trim()) return "Please enter the patient's last name.";
+      if (!form.first_name.trim()) return "Please enter the patient's first name.";
       if (!form.birthdate) return "Please enter the patient's birthdate.";
       if (new Date(form.birthdate) > new Date()) return "Birthdate can't be in the future.";
       if (ageInYears(form.birthdate) < MIN_AGE_YEARS) {
@@ -179,7 +182,9 @@ export default function Enrollment() {
         guardian_phone: form.guardian_phone,
         email: form.email,
         password: form.password,
-        patient_name: form.patient_name,
+        last_name: form.last_name,
+        first_name: form.first_name,
+        middle_name: form.middle_name,
         birthdate: form.birthdate,
         diagnosis: form.diagnosis,
         service_type: form.service_type,
@@ -384,12 +389,31 @@ function StepPatient({ form, update, maxBirthdate, attachmentFiles, addFiles, re
       <StepHeading number="1" title="Tell us about the patient" subtitle="All fields here are required." />
       <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Patient's full name" required>
+          <Field label="Last name" required>
             <input
-              value={form.patient_name}
-              onChange={(event) => update("patient_name", event.target.value)}
+              value={form.last_name}
+              onChange={(event) => update("last_name", event.target.value)}
               className={fieldClass}
-              placeholder="Juan Dela Cruz"
+              placeholder="Dela Cruz"
+            />
+          </Field>
+          <Field label="First name" required>
+            <input
+              value={form.first_name}
+              onChange={(event) => update("first_name", event.target.value)}
+              className={fieldClass}
+              placeholder="Juan"
+            />
+          </Field>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Middle name" hint="Optional">
+            <input
+              value={form.middle_name}
+              onChange={(event) => update("middle_name", event.target.value)}
+              className={fieldClass}
+              placeholder="Santos"
             />
           </Field>
           <Field label="Birthdate" required hint={`Must be ${maxBirthdate ? "2+ years old" : ""}`}>
@@ -568,7 +592,10 @@ function StepReview({ form, attachmentFiles }) {
       <StepHeading number="4" title="Review before you submit" subtitle="Make sure everything looks right." />
       <div className="space-y-4">
         <ReviewSection title="Patient">
-          <ReviewRow label="Name" value={form.patient_name} />
+          <ReviewRow
+            label="Name"
+            value={[form.first_name, form.middle_name, form.last_name].filter(Boolean).join(" ")}
+          />
           <ReviewRow label="Birthdate" value={form.birthdate} />
           <ReviewRow label="Diagnosis" value={form.diagnosis} />
           <ReviewRow label="Photos attached" value={String(attachmentFiles.length)} />

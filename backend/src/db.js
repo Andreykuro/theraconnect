@@ -36,6 +36,13 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS clients (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  -- 'name' stays as the single display name every other part of the app
+  -- already reads (session cards, calendar, client lists, messages, etc.) -
+  -- it's composed from these three fields at create/update time rather than
+  -- requiring every existing consumer of client.name to change.
+  last_name         TEXT NOT NULL DEFAULT '',
+  first_name        TEXT NOT NULL DEFAULT '',
+  middle_name       TEXT,
   name              TEXT NOT NULL,
   birthdate         TEXT,
   service_type      TEXT NOT NULL DEFAULT 'Speech Therapy',
@@ -162,6 +169,11 @@ CREATE TABLE IF NOT EXISTS messages (
   sender_role   TEXT NOT NULL CHECK (sender_role IN ('parent','therapist','admin')),
   body          TEXT NOT NULL,
   read_at       TEXT,
+  -- edited_at: set when the sender changes a still-standing message's text.
+  -- deleted_at: set when the sender "unsends" it - body is cleared at that
+  -- point (the row stays, for thread continuity, but the text is gone).
+  edited_at     TEXT,
+  deleted_at    TEXT,
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -382,6 +394,29 @@ function migrate() {
     sqljsDb.exec(
         `ALTER TABLE classwork ADD COLUMN star_rating INTEGER CHECK (star_rating IS NULL OR (star_rating BETWEEN 1 AND 5));`
     );
+  }
+  // Enrollment name split (last/first/middle instead of one free-text name).
+  // Existing rows only have `name`, so backfill first/last from it as a
+  // best-effort split (first word -> first_name, rest -> last_name) rather
+  // than leaving them blank.
+  if (!hasColumn("clients", "last_name")) {
+    sqljsDb.exec(`ALTER TABLE clients ADD COLUMN last_name TEXT NOT NULL DEFAULT '';`);
+    sqljsDb.exec(`ALTER TABLE clients ADD COLUMN first_name TEXT NOT NULL DEFAULT '';`);
+    sqljsDb.exec(`ALTER TABLE clients ADD COLUMN middle_name TEXT;`);
+    sqljsDb.exec(`
+      UPDATE clients
+      SET
+        first_name = TRIM(SUBSTR(name, 1, CASE WHEN INSTR(name, ' ') = 0 THEN LENGTH(name) ELSE INSTR(name, ' ') - 1 END)),
+        last_name = TRIM(CASE WHEN INSTR(name, ' ') = 0 THEN '' ELSE SUBSTR(name, INSTR(name, ' ') + 1) END)
+      WHERE name IS NOT NULL AND name != '';
+    `);
+  }
+  // Chat: edit/unsend support.
+  if (!hasColumn("messages", "edited_at")) {
+    sqljsDb.exec(`ALTER TABLE messages ADD COLUMN edited_at TEXT;`);
+  }
+  if (!hasColumn("messages", "deleted_at")) {
+    sqljsDb.exec(`ALTER TABLE messages ADD COLUMN deleted_at TEXT;`);
   }
 
   // --- CHECK constraint change: SQLite can't ALTER a CHECK in place, so

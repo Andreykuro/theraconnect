@@ -66,10 +66,13 @@ async function main() {
     );
 
     const insertClient = db.prepare(`
-      INSERT INTO clients (name, birthdate, service_type, guardian_name, guardian_phone, guardian_email, therapist_id, user_id, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO clients (last_name, first_name, middle_name, name, birthdate, service_type, guardian_name, guardian_phone, guardian_email, therapist_id, user_id, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const c1 = insertClient.run(
+      "Dela Cruz",
+      "Miguel",
+      null,
       "Miguel Dela Cruz",
       "2019-03-14",
       "Speech Therapy",
@@ -81,6 +84,9 @@ async function main() {
       "Working on articulation of /r/ and /s/ sounds."
     );
     const c2 = insertClient.run(
+      "Santos",
+      "Sofia",
+      null,
       "Sofia Santos",
       "2020-07-02",
       "Occupational Therapy",
@@ -92,6 +98,9 @@ async function main() {
       "Fine motor skills development."
     );
     const c3 = insertClient.run(
+      "Ramos",
+      "Ella",
+      null,
       "Ella Ramos",
       "2018-11-20",
       "Physical Therapy",

@@ -296,6 +296,231 @@ router.get("/schedule-suggestions", requireAuth, (req, res) => {
   res.json({ client, preferred_period: preferredPeriod, suggestions: suggestions.slice(0, 10) });
 });
 
+// Business/growth statistics for the admin Automation page's charts: how
+// enrollment is trending, how sessions are distributed by status, and the
+// mix of service types / registration states - the numbers an owner would
+// want to see the clinic's growth in, not just day-to-day operations.
+function monthKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function startOfWeek(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - d.getDay());
+  return d;
+}
+
+function pct(part, whole) {
+  if (!whole) return 0;
+  return Math.round((part / whole) * 1000) / 10;
+}
+
+// Shared by the JSON endpoint below and the PDF export in reports.js.
+function buildBusinessStats() {
+    const now = new Date();
+
+    // --- Enrollment growth: new clients per month, last 6 months ---
+    const monthLabels = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      monthLabels.push({
+        key: monthKey(d),
+        label: d.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
+      });
+    }
+    const enrollmentRows = db
+      .prepare(`SELECT strftime('%Y-%m', created_at) AS ym, COUNT(*) AS count FROM clients GROUP BY ym`)
+      .all();
+    const enrollmentByMonth = new Map(enrollmentRows.map((r) => [r.ym, r.count]));
+    const enrollment_growth = monthLabels.map((m) => ({
+      month: m.label,
+      new_enrollments: enrollmentByMonth.get(m.key) || 0,
+    }));
+    const thisMonth = enrollment_growth[enrollment_growth.length - 1].new_enrollments;
+    const lastMonth = enrollment_growth[enrollment_growth.length - 2]?.new_enrollments || 0;
+    const enrollment_growth_rate_pct =
+      lastMonth === 0 ? (thisMonth > 0 ? 100 : 0) : Math.round(((thisMonth - lastMonth) / lastMonth) * 1000) / 10;
+
+    // --- Sessions booked by status (pie-chart ready) + attendance rate ---
+    const sessionsByStatusRows = db
+      .prepare(`SELECT status, COUNT(*) AS count FROM appointments GROUP BY status`)
+      .all();
+    const totalSessions = sessionsByStatusRows.reduce((sum, r) => sum + r.count, 0);
+    const sessions_by_status = sessionsByStatusRows.map((r) => ({
+      status: r.status,
+      count: r.count,
+      percentage: pct(r.count, totalSessions),
+    }));
+    const completedCount = sessionsByStatusRows.find((r) => r.status === "completed")?.count || 0;
+    const cancelledCount = sessionsByStatusRows.find((r) => r.status === "cancelled")?.count || 0;
+    const attendance_rate_pct =
+      completedCount + cancelledCount ? pct(completedCount, completedCount + cancelledCount) : null;
+
+    // --- Sessions booked trend: last 8 weeks (excluding cancelled) ---
+    const apptStartTimes = db
+      .prepare(`SELECT start_time FROM appointments WHERE status != 'cancelled'`)
+      .all()
+      .map((r) => new Date(r.start_time));
+    const sessions_booked_trend = [];
+    for (let i = 7; i >= 0; i--) {
+      const start = startOfWeek(now);
+      start.setDate(start.getDate() - i * 7);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 7);
+      sessions_booked_trend.push({
+        week: `${start.getMonth() + 1}/${start.getDate()}`,
+        sessions: apptStartTimes.filter((t) => t >= start && t < end).length,
+      });
+    }
+
+    // --- Clients by service type (pie-chart ready) ---
+    const byServiceRows = db
+      .prepare(`SELECT service_type, COUNT(*) AS count FROM clients GROUP BY service_type ORDER BY count DESC`)
+      .all();
+    const totalClients = byServiceRows.reduce((sum, r) => sum + r.count, 0);
+    const clients_by_service = byServiceRows.map((r) => ({
+      service_type: r.service_type,
+      count: r.count,
+      percentage: pct(r.count, totalClients),
+    }));
+
+    // --- Registration funnel: active / pending / rejected (pie-chart ready) ---
+    const byStatusRows = db.prepare(`SELECT status, COUNT(*) AS count FROM clients GROUP BY status`).all();
+    const clients_by_status = byStatusRows.map((r) => ({
+      status: r.status,
+      count: r.count,
+      percentage: pct(r.count, totalClients),
+    }));
+
+    // --- Therapist utilization: active (non-cancelled) sessions per therapist ---
+    const therapist_utilization = db
+      .prepare(
+        `SELECT t.id, t.name, t.specialty, t.color, COUNT(a.id) AS session_count
+         FROM therapists t
+         LEFT JOIN appointments a ON a.therapist_id = t.id AND a.status != 'cancelled'
+         WHERE t.active = 1
+         GROUP BY t.id
+         ORDER BY session_count DESC`
+      )
+      .all();
+
+    return {
+      generated_at: now.toISOString(),
+      enrollment_growth,
+      enrollment_growth_rate_pct,
+      sessions_by_status,
+      attendance_rate_pct,
+      sessions_booked_trend,
+      clients_by_service,
+      clients_by_status,
+      therapist_utilization,
+      totals: {
+        total_clients: totalClients,
+        total_sessions: totalSessions,
+        active_therapists: therapist_utilization.length,
+      },
+    };
+}
+router.buildBusinessStats = buildBusinessStats;
+
+router.get(
+  "/business-stats",
+  requireAuth,
+  requireRole("admin"),
+  (req, res) => {
+    res.json(buildBusinessStats());
+  }
+);
+
+// Daily/weekly summary feeding the downloadable PDF report (Feature 4):
+// counts of sessions and enrollments for "today" and "this week" (Sun-Sat),
+// plus a short list of today's sessions and this week's new enrollments so
+// the PDF has real detail, not just totals.
+// Shared by the JSON endpoint below and the PDF export in reports.js -
+// one source of truth for what "today" and "this week" mean and what
+// counts as a summary, so the on-screen numbers and the downloaded PDF
+// never drift apart.
+function buildReportSummary() {
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const endOfToday = new Date(startOfToday);
+  endOfToday.setDate(endOfToday.getDate() + 1);
+  const weekStart = startOfWeek(now);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+
+  function countAppointments(start, end) {
+    return db
+      .prepare(
+        `SELECT COUNT(*) AS count FROM appointments
+         WHERE status != 'cancelled' AND start_time >= ? AND start_time < ?`
+      )
+      .get(start.toISOString(), end.toISOString()).count;
+  }
+  function countEnrollments(start, end) {
+    return db
+      .prepare(`SELECT COUNT(*) AS count FROM clients WHERE created_at >= ? AND created_at < ?`)
+      .get(start.toISOString(), end.toISOString()).count;
+  }
+
+  const todaysSessions = db
+    .prepare(
+      `SELECT a.id, a.start_time, a.end_time, a.status, a.service_type,
+              c.name AS client_name, t.name AS therapist_name
+       FROM appointments a
+       JOIN clients c ON c.id = a.client_id
+       JOIN therapists t ON t.id = a.therapist_id
+       WHERE a.status != 'cancelled' AND a.start_time >= ? AND a.start_time < ?
+       ORDER BY a.start_time ASC`
+    )
+    .all(startOfToday.toISOString(), endOfToday.toISOString());
+
+  const weeksNewEnrollments = db
+    .prepare(
+      `SELECT id, name, service_type, status, created_at
+       FROM clients WHERE created_at >= ? AND created_at < ?
+       ORDER BY created_at ASC`
+    )
+    .all(weekStart.toISOString(), weekEnd.toISOString());
+
+  return {
+    generated_at: now.toISOString(),
+    range: {
+      today: { start: startOfToday.toISOString(), end: endOfToday.toISOString() },
+      week: { start: weekStart.toISOString(), end: weekEnd.toISOString() },
+    },
+    daily: {
+      sessions_booked: countAppointments(startOfToday, endOfToday),
+      new_enrollments: countEnrollments(startOfToday, endOfToday),
+      sessions: todaysSessions,
+    },
+    weekly: {
+      sessions_booked: countAppointments(weekStart, weekEnd),
+      new_enrollments: countEnrollments(weekStart, weekEnd),
+      new_enrollment_list: weeksNewEnrollments,
+    },
+    totals: {
+      total_clients: db.prepare("SELECT COUNT(*) AS count FROM clients").get().count,
+      active_clients: db.prepare("SELECT COUNT(*) AS count FROM clients WHERE status = 'active'").get().count,
+      total_sessions_all_time: db
+        .prepare("SELECT COUNT(*) AS count FROM appointments WHERE status != 'cancelled'")
+        .get().count,
+    },
+  };
+}
+router.buildReportSummary = buildReportSummary;
+
+router.get(
+  "/report-summary",
+  requireAuth,
+  requireRole("admin"),
+  (req, res) => {
+    res.json(buildReportSummary());
+  }
+);
+
 router.get(
   "/ai-audit",
   requireAuth,

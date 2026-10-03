@@ -55,6 +55,15 @@ function parentsOwnClient(userId) {
   return db.prepare("SELECT id FROM clients WHERE user_id = ? ORDER BY id ASC LIMIT 1").get(userId);
 }
 
+function getMessageWithSender(id) {
+  return db
+    .prepare(
+      `SELECT m.*, u.name AS sender_name FROM messages m
+       JOIN users u ON u.id = m.sender_id WHERE m.id = ?`
+    )
+    .get(id);
+}
+
 // --- Parent: their own thread (mirrors the /progress/me convention) ---
 router.get("/me", requireAuth, requireRole("parent"), (req, res) => {
   const client = parentsOwnClient(req.user.id);
@@ -86,18 +95,19 @@ router.get("/threads", requireAuth, requireRole("therapist", "admin"), (req, res
     .map((c) => {
       const last = db
         .prepare(
-          "SELECT body, sender_role, created_at FROM messages WHERE client_id = ? ORDER BY created_at DESC LIMIT 1"
+          "SELECT body, sender_role, created_at, deleted_at FROM messages WHERE client_id = ? ORDER BY created_at DESC LIMIT 1"
         )
         .get(c.id);
       const unread = db
         .prepare(
-          "SELECT COUNT(*) AS n FROM messages WHERE client_id = ? AND sender_role = 'parent' AND read_at IS NULL"
+          `SELECT COUNT(*) AS n FROM messages
+           WHERE client_id = ? AND sender_role = 'parent' AND read_at IS NULL AND deleted_at IS NULL`
         )
         .get(c.id);
       return {
         client_id: c.id,
         client_name: c.name,
-        last_message: last?.body ?? null,
+        last_message: last ? (last.deleted_at ? "Unsent a message" : last.body) : null,
         last_sender: last?.sender_role ?? null,
         last_at: last?.created_at ?? null,
         unread: unread.n,
@@ -126,6 +136,50 @@ router.post("/clients/:clientId", requireAuth, requireRole("admin", "therapist")
   const message = sendMessage(client.id, req.user, req.body?.body);
   if (!message) return res.status(400).json({ error: "Message body is required" });
   res.status(201).json(message);
+});
+
+// --- Edit / unsend a message. Works for any role (parent, therapist, admin)
+// since access is checked the same way the thread itself is: the caller
+// must be able to see this client's thread, AND must be the original
+// sender - nobody can edit or unsend someone else's message. ---
+router.patch("/:messageId", requireAuth, (req, res) => {
+  const message = db.prepare("SELECT * FROM messages WHERE id = ?").get(req.params.messageId);
+  if (!message) return res.status(404).json({ error: "Message not found" });
+
+  const client = getClient(message.client_id);
+  if (!canAccessClient(req.user, client)) return res.status(403).json({ error: "Forbidden" });
+  if (Number(message.sender_id) !== Number(req.user.id)) {
+    return res.status(403).json({ error: "You can only edit your own messages" });
+  }
+  if (message.deleted_at) {
+    return res.status(400).json({ error: "An unsent message can't be edited" });
+  }
+
+  const body = typeof req.body?.body === "string" ? req.body.body.trim() : "";
+  if (!body) return res.status(400).json({ error: "Message body is required" });
+
+  db.prepare("UPDATE messages SET body = ?, edited_at = datetime('now') WHERE id = ?").run(
+    body,
+    message.id
+  );
+  res.json(getMessageWithSender(message.id));
+});
+
+router.delete("/:messageId", requireAuth, (req, res) => {
+  const message = db.prepare("SELECT * FROM messages WHERE id = ?").get(req.params.messageId);
+  if (!message) return res.status(404).json({ error: "Message not found" });
+
+  const client = getClient(message.client_id);
+  if (!canAccessClient(req.user, client)) return res.status(403).json({ error: "Forbidden" });
+  if (Number(message.sender_id) !== Number(req.user.id)) {
+    return res.status(403).json({ error: "You can only unsend your own messages" });
+  }
+  if (message.deleted_at) {
+    return res.json(getMessageWithSender(message.id)); // already unsent - no-op
+  }
+
+  db.prepare("UPDATE messages SET body = '', deleted_at = datetime('now') WHERE id = ?").run(message.id);
+  res.json(getMessageWithSender(message.id));
 });
 
 module.exports = router;

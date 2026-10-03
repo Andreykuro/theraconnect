@@ -22,7 +22,7 @@ function SoundBars({ heights, color }) {
 // genuinely composed illustration rather than a centered logo on its own.
 export default function HeroArt({ className = "" }) {
   return (
-    <div className={`relative mx-auto aspect-square w-full max-w-lg ${className}`}>
+    <div className={`relative mx-auto aspect-square w-full max-w-xl lg:max-w-2xl ${className}`}>
       <div className="blob-1 absolute inset-6 bg-harbor-light" />
       <div className="blob-2 absolute inset-12 bg-white shadow-xl ring-1 ring-mist-light" />
 
@@ -40,8 +40,8 @@ export default function HeroArt({ className = "" }) {
       <Star className="absolute bottom-[6%] left-[16%] fill-therafun-lime text-therafun-lime-dark" size={16} />
 
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="rounded-[2rem] bg-white p-7 shadow-2xl ring-1 ring-mist-light sm:p-9">
-          <BrandLogo eager className="h-20 w-auto sm:h-24" />
+        <div className="rounded-[2rem] bg-white p-9 shadow-2xl ring-1 ring-mist-light sm:p-12">
+          <BrandLogo eager className="h-28 w-auto sm:h-36" />
         </div>
       </div>
     </div>

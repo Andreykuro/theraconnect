@@ -6,7 +6,9 @@ import useModalEntrance from "../hooks/useModalEntrance";
 export default function ClientModal({ therapists, initial, onClose, onSaved }) {
   const isEdit = Boolean(initial?.id);
   const [form, setForm] = useState({
-    name: initial?.name || "",
+    last_name: initial?.last_name || "",
+    first_name: initial?.first_name || "",
+    middle_name: initial?.middle_name || "",
     birthdate: initial?.birthdate || "",
     service_type: initial?.service_type || "Speech Therapy",
     guardian_name: initial?.guardian_name || "",
@@ -26,8 +28,8 @@ export default function ClientModal({ therapists, initial, onClose, onSaved }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
-    if (!form.name || !form.guardian_name || !form.guardian_phone) {
-      setError("Child's name, guardian name, and guardian phone are required.");
+    if (!form.last_name || !form.first_name || !form.guardian_name || !form.guardian_phone) {
+      setError("Child's last name, first name, guardian name, and guardian phone are required.");
       return;
     }
     setSaving(true);
@@ -59,10 +61,26 @@ export default function ClientModal({ therapists, initial, onClose, onSaved }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Field label="Child's name">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Last name">
+              <input
+                value={form.last_name}
+                onChange={(e) => update("last_name", e.target.value)}
+                className="w-full rounded-lg border border-mist-light px-3 py-2 text-sm outline-none focus:border-harbor"
+              />
+            </Field>
+            <Field label="First name">
+              <input
+                value={form.first_name}
+                onChange={(e) => update("first_name", e.target.value)}
+                className="w-full rounded-lg border border-mist-light px-3 py-2 text-sm outline-none focus:border-harbor"
+              />
+            </Field>
+          </div>
+          <Field label="Middle name (optional)">
             <input
-              value={form.name}
-              onChange={(e) => update("name", e.target.value)}
+              value={form.middle_name}
+              onChange={(e) => update("middle_name", e.target.value)}
               className="w-full rounded-lg border border-mist-light px-3 py-2 text-sm outline-none focus:border-harbor"
             />
           </Field>

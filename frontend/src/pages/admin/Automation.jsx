@@ -8,18 +8,48 @@ import {
   CalendarClock,
   CheckCircle2,
   Clock3,
+  Database,
+  Download,
+  FileDown,
   FileWarning,
+  HardDrive,
   Lightbulb,
   Loader2,
   RefreshCw,
   Sparkles,
+  Trash2,
+  TrendingUp,
   Users,
   WandSparkles,
 } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import api from "../../lib/api";
 import DashboardLayout from "../../components/DashboardLayout";
 
+const CHART_COLORS = ["#6F2C91", "#B84E00", "#59BCE8", "#F5A623", "#C8E72A", "#B93D4A"];
+
+const TABS = [
+  { key: "operations", label: "Operations" },
+  { key: "growth", label: "Growth & stats" },
+  { key: "maintenance", label: "Maintenance" },
+];
+
 export default function Automation() {
+  const [tab, setTab] = useState("operations");
   const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -29,6 +59,19 @@ export default function Automation() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [bookingKey, setBookingKey] = useState("");
   const [success, setSuccess] = useState("");
+
+  // --- Growth & stats tab ---
+  const [stats, setStats] = useState(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+  const [statsError, setStatsError] = useState("");
+  const [downloadingReport, setDownloadingReport] = useState("");
+
+  // --- Maintenance tab ---
+  const [maintenance, setMaintenance] = useState(null);
+  const [loadingMaintenance, setLoadingMaintenance] = useState(false);
+  const [maintenanceError, setMaintenanceError] = useState("");
+  const [downloadingBackup, setDownloadingBackup] = useState(false);
+  const [cleaningUp, setCleaningUp] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -43,9 +86,98 @@ export default function Automation() {
     }
   }, []);
 
+  const loadStats = useCallback(async () => {
+    setLoadingStats(true);
+    setStatsError("");
+    try {
+      const { data } = await api.get("/automation/business-stats");
+      setStats(data);
+    } catch (requestError) {
+      setStatsError(requestError.response?.data?.error || "Couldn't load growth statistics.");
+    } finally {
+      setLoadingStats(false);
+    }
+  }, []);
+
+  const loadMaintenance = useCallback(async () => {
+    setLoadingMaintenance(true);
+    setMaintenanceError("");
+    try {
+      const { data } = await api.get("/maintenance/status");
+      setMaintenance(data);
+    } catch (requestError) {
+      setMaintenanceError(requestError.response?.data?.error || "Couldn't load maintenance status.");
+    } finally {
+      setLoadingMaintenance(false);
+    }
+  }, []);
+
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (tab === "growth" && !stats) loadStats();
+    if (tab === "maintenance" && !maintenance) loadMaintenance();
+  }, [tab, stats, maintenance, loadStats, loadMaintenance]);
+
+  // Downloads a server-generated file through an authenticated axios request
+  // (a plain <a href> can't carry the Bearer token the API requires).
+  async function downloadBlob(url, filename) {
+    const { data } = await api.get(url, { responseType: "blob" });
+    const blobUrl = window.URL.createObjectURL(data);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(blobUrl);
+  }
+
+  async function downloadReport(period) {
+    setDownloadingReport(period);
+    try {
+      await downloadBlob(
+        `/reports/summary.pdf?period=${period}`,
+        `theraconnect-${period}-report-${format(new Date(), "yyyy-MM-dd")}.pdf`
+      );
+    } catch (requestError) {
+      setStatsError(requestError.response?.data?.error || "Couldn't generate that report.");
+    } finally {
+      setDownloadingReport("");
+    }
+  }
+
+  async function downloadBackup() {
+    setDownloadingBackup(true);
+    try {
+      await downloadBlob(
+        "/maintenance/backup",
+        `theraconnect-backup-${format(new Date(), "yyyy-MM-dd-HHmm")}.sqlite`
+      );
+    } catch (requestError) {
+      setMaintenanceError(requestError.response?.data?.error || "Couldn't download the backup.");
+    } finally {
+      setDownloadingBackup(false);
+    }
+  }
+
+  async function runCleanup() {
+    setCleaningUp(true);
+    setMaintenanceError("");
+    try {
+      const { data } = await api.post("/maintenance/cleanup", { older_than_days: 90 });
+      setSuccess(
+        `Removed ${data.removed_notifications_log} old notification log${data.removed_notifications_log === 1 ? "" : "s"} and ${data.removed_ai_audit_logs} old AI audit log${data.removed_ai_audit_logs === 1 ? "" : "s"}.`
+      );
+      await loadMaintenance();
+    } catch (requestError) {
+      setMaintenanceError(requestError.response?.data?.error || "Couldn't run cleanup.");
+    } finally {
+      setCleaningUp(false);
+    }
+  }
 
   const maxLoad = useMemo(
     () => Math.max(1, ...(insights?.therapist_load || []).map((therapist) => therapist.upcoming_sessions)),
@@ -105,22 +237,61 @@ export default function Automation() {
       title="Automation center"
       subtitle="Scheduling recommendations, documentation checks, and management insights"
       actions={
-        <button
-          onClick={load}
-          disabled={loading}
-          className="flex items-center gap-2 rounded-lg bg-harbor px-4 py-2.5 text-sm font-semibold text-white hover:bg-harbor-dark disabled:opacity-50"
-        >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-          Refresh insights
-        </button>
+        tab === "operations" ? (
+          <button
+            onClick={load}
+            disabled={loading}
+            className="flex items-center gap-2 rounded-lg bg-harbor px-4 py-2.5 text-sm font-semibold text-white hover:bg-harbor-dark disabled:opacity-50"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            Refresh insights
+          </button>
+        ) : tab === "growth" ? (
+          <button
+            onClick={loadStats}
+            disabled={loadingStats}
+            className="flex items-center gap-2 rounded-lg bg-harbor px-4 py-2.5 text-sm font-semibold text-white hover:bg-harbor-dark disabled:opacity-50"
+          >
+            <RefreshCw size={16} className={loadingStats ? "animate-spin" : ""} />
+            Refresh stats
+          </button>
+        ) : (
+          <button
+            onClick={loadMaintenance}
+            disabled={loadingMaintenance}
+            className="flex items-center gap-2 rounded-lg bg-harbor px-4 py-2.5 text-sm font-semibold text-white hover:bg-harbor-dark disabled:opacity-50"
+          >
+            <RefreshCw size={16} className={loadingMaintenance ? "animate-spin" : ""} />
+            Refresh status
+          </button>
+        )
       }
     >
       <div className="space-y-6">
-        {error && <p className="rounded-xl bg-coral-red-light px-4 py-3 text-sm text-coral-red">{error}</p>}
-        {success && <p className="rounded-xl bg-harbor-light px-4 py-3 text-sm text-harbor-dark">{success}</p>}
-        {loading && !insights && <p className="text-sm text-mist">Analyzing clinic operations...</p>}
+        <div className="flex rounded-xl bg-chalk p-1 sm:inline-flex">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                tab === t.key ? "bg-white text-harbor-dark shadow-sm" : "text-mist hover:text-ink"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
 
-        {insights && (
+        {success && <p className="rounded-xl bg-harbor-light px-4 py-3 text-sm text-harbor-dark">{success}</p>}
+
+        {tab === "operations" && error && (
+          <p className="rounded-xl bg-coral-red-light px-4 py-3 text-sm text-coral-red">{error}</p>
+        )}
+        {tab === "operations" && loading && !insights && (
+          <p className="text-sm text-mist">Analyzing clinic operations...</p>
+        )}
+
+        {tab === "operations" && insights && (
           <>
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
               <Stat icon={Users} label="Active clients" value={insights.stats.total_clients} />
@@ -329,6 +500,28 @@ export default function Automation() {
             </div>
           </>
         )}
+
+        {tab === "growth" && (
+          <GrowthTab
+            stats={stats}
+            loading={loadingStats}
+            error={statsError}
+            downloadingReport={downloadingReport}
+            onDownloadReport={downloadReport}
+          />
+        )}
+
+        {tab === "maintenance" && (
+          <MaintenanceTab
+            status={maintenance}
+            loading={loadingMaintenance}
+            error={maintenanceError}
+            downloadingBackup={downloadingBackup}
+            cleaningUp={cleaningUp}
+            onDownloadBackup={downloadBackup}
+            onCleanup={runCleanup}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
@@ -368,5 +561,275 @@ function IssueList({ icon: Icon, title, empty, items }) {
         </div>
       )}
     </section>
+  );
+}
+
+function GrowthTab({ stats, loading, error, downloadingReport, onDownloadReport }) {
+  if (loading && !stats) {
+    return <p className="text-sm text-mist">Crunching enrollment and session numbers...</p>;
+  }
+  if (error && !stats) {
+    return <p className="rounded-xl bg-coral-red-light px-4 py-3 text-sm text-coral-red">{error}</p>;
+  }
+  if (!stats) return null;
+
+  return (
+    <div className="space-y-6">
+      {error && <p className="rounded-xl bg-coral-red-light px-4 py-3 text-sm text-coral-red">{error}</p>}
+
+      <section className="rounded-2xl bg-gradient-to-r from-harbor to-harbor-dark p-6 text-white shadow-sm">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/55">Downloadable summary</p>
+            <h2 className="font-display text-xl font-semibold">Daily &amp; weekly report (PDF)</h2>
+            <p className="mt-1 text-sm text-white/80">
+              A branded PDF snapshot of sessions, enrollments, and growth - ready to print or share.
+            </p>
+          </div>
+          <div className="flex flex-shrink-0 gap-2">
+            <button
+              onClick={() => onDownloadReport("daily")}
+              disabled={Boolean(downloadingReport)}
+              className="flex items-center gap-2 rounded-lg bg-white/15 px-4 py-2.5 text-sm font-semibold text-white ring-1 ring-white/20 hover:bg-white/25 disabled:opacity-50"
+            >
+              {downloadingReport === "daily" ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
+              Daily PDF
+            </button>
+            <button
+              onClick={() => onDownloadReport("weekly")}
+              disabled={Boolean(downloadingReport)}
+              className="flex items-center gap-2 rounded-lg bg-sunrise px-4 py-2.5 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-50"
+            >
+              {downloadingReport === "weekly" ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
+              Weekly PDF
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat icon={Users} label="Total clients" value={stats.totals.total_clients} />
+        <Stat icon={CalendarClock} label="Total sessions" value={stats.totals.total_sessions} />
+        <Stat
+          icon={TrendingUp}
+          label="Enrollment growth (MoM)"
+          value={`${stats.enrollment_growth_rate_pct > 0 ? "+" : ""}${stats.enrollment_growth_rate_pct}%`}
+        />
+        <Stat
+          icon={CheckCircle2}
+          label="Attendance rate"
+          value={stats.attendance_rate_pct === null ? "N/A" : `${stats.attendance_rate_pct}%`}
+        />
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ChartCard title="Enrollment growth" subtitle="New patients enrolled per month">
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={stats.enrollment_growth}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="#746F7C" />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="#746F7C" />
+              <Tooltip />
+              <Line type="monotone" dataKey="new_enrollments" name="New enrollments" stroke="#6F2C91" strokeWidth={2.5} dot={{ r: 3 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard title="Sessions booked" subtitle="Non-cancelled sessions by week, last 8 weeks">
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={stats.sessions_booked_trend}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis dataKey="week" tick={{ fontSize: 11 }} stroke="#746F7C" />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="#746F7C" />
+              <Tooltip />
+              <Bar dataKey="sessions" name="Sessions" fill="#59BCE8" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard title="Clients by treatment type" subtitle="Active mix of services offered">
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie
+                data={stats.clients_by_service}
+                dataKey="count"
+                nameKey="service_type"
+                innerRadius={50}
+                outerRadius={85}
+                paddingAngle={2}
+              >
+                {stats.clients_by_service.map((entry, index) => (
+                  <Cell key={entry.service_type} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value, name) => [`${value} client${value === 1 ? "" : "s"}`, name]} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard title="Sessions by status" subtitle="All-time booking outcomes">
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie
+                data={stats.sessions_by_status}
+                dataKey="count"
+                nameKey="status"
+                innerRadius={50}
+                outerRadius={85}
+                paddingAngle={2}
+              >
+                {stats.sessions_by_status.map((entry, index) => (
+                  <Cell key={entry.status} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value, name) => [`${value} session${value === 1 ? "" : "s"}`, name]} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      </div>
+
+      <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-mist-light">
+        <h2 className="mb-1 flex items-center gap-2 font-display text-lg font-semibold text-ink">
+          <BarChart3 size={18} className="text-harbor" />
+          Therapist utilization
+        </h2>
+        <p className="mb-4 text-xs text-mist">Active (non-cancelled) sessions per therapist, all time</p>
+        <ResponsiveContainer width="100%" height={Math.max(160, stats.therapist_utilization.length * 42)}>
+          <BarChart data={stats.therapist_utilization} layout="vertical" margin={{ left: 24 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" horizontal={false} />
+            <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} stroke="#746F7C" />
+            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="#746F7C" width={140} />
+            <Tooltip />
+            <Bar dataKey="session_count" name="Sessions" radius={[0, 4, 4, 0]}>
+              {stats.therapist_utilization.map((entry) => (
+                <Cell key={entry.id} fill={entry.color || "#6F2C91"} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </section>
+
+      <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-mist-light">
+        <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-ink">
+          <Users size={18} className="text-sunrise" />
+          Registration funnel
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {stats.clients_by_status.map((row) => (
+            <div key={row.status} className="rounded-xl bg-chalk p-4">
+              <p className="font-display text-2xl font-semibold text-ink">{row.count}</p>
+              <p className="mt-1 text-xs capitalize text-mist">
+                {row.status} · {row.percentage}%
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ChartCard({ title, subtitle, children }) {
+  return (
+    <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-mist-light">
+      <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
+      <p className="mb-2 text-xs text-mist">{subtitle}</p>
+      {children}
+    </section>
+  );
+}
+
+function MaintenanceTab({ status, loading, error, downloadingBackup, cleaningUp, onDownloadBackup, onCleanup }) {
+  if (loading && !status) {
+    return <p className="text-sm text-mist">Checking database health...</p>;
+  }
+  if (error && !status) {
+    return <p className="rounded-xl bg-coral-red-light px-4 py-3 text-sm text-coral-red">{error}</p>;
+  }
+  if (!status) return null;
+
+  const sizeMb = (status.database.size_bytes / (1024 * 1024)).toFixed(2);
+  const cleanupTotal =
+    status.cleanup_candidates.notifications_log_older_than_90_days +
+    status.cleanup_candidates.ai_audit_logs_older_than_90_days;
+
+  return (
+    <div className="space-y-6">
+      {error && <p className="rounded-xl bg-coral-red-light px-4 py-3 text-sm text-coral-red">{error}</p>}
+
+      <section className="grid gap-4 sm:grid-cols-3">
+        <Stat icon={HardDrive} label="Database size" value={`${sizeMb} MB`} />
+        <Stat
+          icon={Database}
+          label="Total records"
+          value={Object.values(status.record_counts).reduce((sum, n) => sum + n, 0)}
+        />
+        <Stat
+          icon={AlertTriangle}
+          label="Clients never scheduled"
+          value={status.health_flags.active_clients_never_scheduled}
+          alert={status.health_flags.active_clients_never_scheduled > 0}
+        />
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-mist-light">
+          <h2 className="mb-1 flex items-center gap-2 font-display text-lg font-semibold text-ink">
+            <HardDrive size={18} className="text-harbor" />
+            Database backup
+          </h2>
+          <p className="mb-4 text-xs text-mist">
+            {status.database.last_modified
+              ? `Last written ${format(parseISO(status.database.last_modified), "MMM d, yyyy 'at' h:mm a")}`
+              : "No database file found yet."}
+          </p>
+          <button
+            onClick={onDownloadBackup}
+            disabled={downloadingBackup}
+            className="flex items-center gap-2 rounded-lg bg-harbor px-4 py-2.5 text-sm font-semibold text-white hover:bg-harbor-dark disabled:opacity-50"
+          >
+            {downloadingBackup ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            Download full backup (.sqlite)
+          </button>
+        </section>
+
+        <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-mist-light">
+          <h2 className="mb-1 flex items-center gap-2 font-display text-lg font-semibold text-ink">
+            <Trash2 size={18} className="text-sunrise" />
+            Housekeeping
+          </h2>
+          <p className="mb-4 text-xs text-mist">
+            {cleanupTotal > 0
+              ? `${cleanupTotal} log row${cleanupTotal === 1 ? "" : "s"} older than 90 days can be cleared. Clinical records are never touched.`
+              : "No old log rows to clear right now. Clinical records are never touched."}
+          </p>
+          <button
+            onClick={onCleanup}
+            disabled={cleaningUp || cleanupTotal === 0}
+            className="flex items-center gap-2 rounded-lg bg-sunrise px-4 py-2.5 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-50"
+          >
+            {cleaningUp ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+            Clear logs older than 90 days
+          </button>
+        </section>
+      </div>
+
+      <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-mist-light">
+        <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-ink">
+          <Database size={18} className="text-harbor" />
+          Record counts
+        </h2>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 lg:grid-cols-4">
+          {Object.entries(status.record_counts).map(([table, count]) => (
+            <div key={table} className="flex items-center justify-between border-b border-mist-light/60 py-1.5 text-sm">
+              <span className="capitalize text-mist">{table.replace(/_/g, " ")}</span>
+              <span className="font-semibold text-ink">{count}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }

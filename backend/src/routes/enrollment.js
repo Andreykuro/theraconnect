@@ -106,13 +106,16 @@ router.post("/", (req, res) => {
   const guardian_phone = normalizePhone(guardian_phone_input);
   const email = text(req.body?.email).toLowerCase();
   const password = typeof req.body?.password === "string" ? req.body.password : "";
-  const patient_name = text(req.body?.patient_name);
+  const last_name = text(req.body?.last_name);
+  const first_name = text(req.body?.first_name);
+  const middle_name = text(req.body?.middle_name);
+  const patient_name = [first_name, middle_name, last_name].filter(Boolean).join(" ").trim();
   const birthdate = text(req.body?.birthdate);
   const service_type = text(req.body?.service_type);
   const diagnosis = text(req.body?.diagnosis);
   const notes = text(req.body?.notes);
 
-  if (!guardian_name || !guardian_phone_input || !email || !password || !patient_name || !birthdate) {
+  if (!guardian_name || !guardian_phone_input || !email || !password || !last_name || !first_name || !birthdate) {
     return res.status(400).json({
       error: "Guardian, contact, credentials, and patient information are required",
     });
@@ -137,7 +140,13 @@ router.post("/", (req, res) => {
   if (password.length < 8 || password.length > 72) {
     return res.status(400).json({ error: "Password must be between 8 and 72 characters" });
   }
-  if (guardian_name.length > 120 || patient_name.length > 120 || notes.length > 1000) {
+  if (
+    guardian_name.length > 120 ||
+    last_name.length > 80 ||
+    first_name.length > 80 ||
+    middle_name.length > 80 ||
+    notes.length > 1000
+  ) {
     return res.status(400).json({ error: "One or more fields are too long" });
   }
 
@@ -180,11 +189,15 @@ router.post("/", (req, res) => {
       const clientInfo = db
         .prepare(
           `INSERT INTO clients
-             (name, birthdate, service_type, guardian_name, guardian_phone,
-              guardian_email, therapist_id, user_id, notes, status, diagnosis)
-           VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, 'pending', ?)`
+             (last_name, first_name, middle_name, name, birthdate, service_type,
+              guardian_name, guardian_phone, guardian_email, therapist_id, user_id,
+              notes, status, diagnosis)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 'pending', ?)`
         )
         .run(
+          last_name,
+          first_name,
+          middle_name || null,
           patient_name,
           birthdate,
           service_type,
