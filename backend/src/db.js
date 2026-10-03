@@ -174,6 +174,9 @@ CREATE TABLE IF NOT EXISTS messages (
   -- point (the row stays, for thread continuity, but the text is gone).
   edited_at     TEXT,
   deleted_at    TEXT,
+  -- image_path: optional photo attachment, stored in private_uploads/messages
+  -- and only served through an auth-checked route (never public static).
+  image_path    TEXT,
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -417,6 +420,9 @@ function migrate() {
   }
   if (!hasColumn("messages", "deleted_at")) {
     sqljsDb.exec(`ALTER TABLE messages ADD COLUMN deleted_at TEXT;`);
+  }
+  if (!hasColumn("messages", "image_path")) {
+    sqljsDb.exec(`ALTER TABLE messages ADD COLUMN image_path TEXT;`);
   }
 
   // --- CHECK constraint change: SQLite can't ALTER a CHECK in place, so

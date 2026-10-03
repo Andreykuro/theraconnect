@@ -83,6 +83,17 @@ textarea {
 .animate-float {
   animation: float 5s ease-in-out infinite;
 }
+
+/* 3D puzzle pieces sa background - lumulutang habang dahan-dahang umiikot,
+   pero laging bumabalik sa sariling anggulo (--r) */
+@keyframes puzzle-drift {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50% { transform: translateY(-14px) rotate(calc(var(--r, 0deg) + 7deg)); }
+}
+.puzzle-float {
+  transform: rotate(var(--r, 0deg));
+  animation: puzzle-drift 9s ease-in-out infinite;
+}
 .animate-fade-in-up {
   animation: fade-in-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }

@@ -19,6 +19,7 @@ import PublicNavbar from "../components/PublicNavbar";
 import BrandLogo from "../components/BrandLogo";
 import HeroArt from "../components/HeroArt";
 import SideDecor from "../components/SideDecor";
+import { HeroPuzzles, LogoPuzzles } from "../components/PuzzleBackdrop";
 import Reveal from "../components/Reveal";
 import useHeroIntro from "../hooks/useHeroIntro";
 
@@ -91,22 +92,49 @@ export default function Home() {
       <PublicNavbar />
 
       {/* Hero - asymmetric two-column, illustration carries visual weight
-          instead of a centered logo-and-text stack */}
-      <section ref={heroRef} className="relative overflow-hidden px-6 pb-12 pt-32 sm:pb-16 sm:pt-40 lg:pt-44">
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[42rem] bg-gradient-to-b from-harbor-light via-chalk to-chalk" />
+          instead of a centered logo-and-text stack. Near-full-viewport height
+          so the first screen reads as a real, modern "top section" rather
+          than a cramped band above the fold. */}
+      <section
+        ref={heroRef}
+        className="relative isolate flex min-h-[84vh] flex-col justify-center overflow-hidden px-6 pb-16 pt-32 sm:min-h-[88vh] sm:pb-20 sm:pt-36 lg:pt-40"
+      >
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[46rem] bg-gradient-to-b from-harbor-light via-chalk to-chalk" />
+
+        {/* 3D puzzle pieces - kahawig ng puzzle-tree sa TheraFun logo */}
+        <HeroPuzzles />
 
         {/* Palamuti sa gilid para hindi blangko sa malapad na screen */}
         <SideDecor />
 
-        <div className="mx-auto grid max-w-[96rem] grid-cols-1 items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+        <div className="mx-auto grid w-full max-w-[96rem] grid-cols-1 items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
           <div className="order-2 text-center lg:order-1 lg:text-left">
             <p className="hero-heading mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-harbor-dark shadow-sm ring-1 ring-mist-light">
               <ShieldCheck size={14} />
               Balanga City, Bataan · since 2011
             </p>
 
-            <h1 className="hero-heading font-display text-[2.75rem] font-semibold leading-[1.05] text-ink sm:text-6xl lg:text-[3.75rem] xl:text-[4.25rem]">
-              Every child deserves to be <span className="italic text-harbor">heard.</span>
+            <h1 className="hero-heading font-display text-[3.2rem] font-semibold leading-[1.05] text-ink sm:text-7xl lg:text-[4.75rem] xl:text-[5.5rem]">
+              Every child deserves to be{" "}
+              <span className="relative inline-block italic text-harbor">
+                heard.
+                {/* Hand-drawn underline swoosh - a custom illustrated accent
+                    instead of a plain underline or background highlight */}
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 160 14"
+                  className="absolute -bottom-2 left-0 h-3 w-full text-sunrise sm:-bottom-3 sm:h-4"
+                  preserveAspectRatio="none"
+                >
+                  <path
+                    d="M2 10.5C32 2.5 82 1 118 6.5C134 9 148 10 158 6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </span>
             </h1>
 
             <p className="hero-sub mx-auto mt-6 max-w-lg text-base text-mist sm:text-lg lg:mx-0">
@@ -118,20 +146,20 @@ export default function Home() {
             <div className="hero-cta mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
               <Link
                 to="/enroll"
-                className="flex items-center gap-2 rounded-full bg-sunrise px-6 py-3.5 text-sm font-bold text-white shadow-[0_10px_30px_-8px_rgba(255,122,89,0.6)] transition hover:brightness-110"
+                className="flex items-center gap-2 rounded-full bg-sunrise px-6 py-3.5 text-sm font-bold text-white shadow-[0_10px_30px_-8px_rgba(255,122,89,0.6)] transition duration-200 hover:brightness-110"
               >
                 Enroll your child
                 <ArrowRight size={16} />
               </Link>
               <Link
                 to="/login"
-                className="rounded-full border border-harbor/20 bg-white px-6 py-3.5 text-sm font-semibold text-harbor-dark transition hover:bg-harbor-light"
+                className="rounded-full border border-harbor/20 bg-white px-6 py-3.5 text-sm font-semibold text-harbor-dark transition duration-200 hover:bg-harbor-light"
               >
                 Parent login
               </Link>
               <a
                 href="#about"
-                className="rounded-full px-6 py-3.5 text-sm font-semibold text-mist transition hover:text-ink"
+                className="rounded-full px-6 py-3.5 text-sm font-semibold text-mist transition duration-200 hover:text-ink"
               >
                 Learn about our centre →
               </a>
@@ -144,7 +172,7 @@ export default function Home() {
         </div>
 
         {/* Quick facts - pang-fill sa blangko sa ilalim ng hero */}
-        <Reveal delay={300} className="mx-auto mt-14 max-w-[96rem]">
+        <Reveal delay={300} className="mx-auto mt-14 w-full max-w-[96rem]">
           <ul className="grid grid-cols-1 gap-x-6 gap-y-4 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-mist-light sm:grid-cols-2 lg:grid-cols-4">
             {QUICK_FACTS.map(({ icon: Icon, text, tone }) => {
               const t = SERVICE_TONES[tone];
@@ -272,9 +300,10 @@ export default function Home() {
             </div>
           </Reveal>
 
-          <Reveal className="relative flex items-center justify-center" delay={100}>
+          <Reveal className="relative isolate flex items-center justify-center" delay={100}>
             <div className="blob-2 absolute -inset-4 -z-10 bg-harbor-light" />
             <div className="blob-3 absolute -bottom-6 -right-6 -z-10 h-28 w-28 bg-therafun-sky-light" />
+            <LogoPuzzles />
             <div className="rounded-[2rem] bg-white p-10 shadow-xl ring-1 ring-mist-light">
               <BrandLogo className="h-40 w-auto sm:h-48" />
             </div>

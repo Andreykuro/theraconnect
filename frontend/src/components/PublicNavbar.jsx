@@ -83,17 +83,23 @@ export default function PublicNavbar() {
           scrolled ? "bg-white/90 shadow-sm backdrop-blur-md" : "bg-transparent"
         }`}
       >
-        <div className="mx-auto flex max-w-[96rem] items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
+        {/* Signature brand stripe - a thin gradient sweep through every color
+            in the TheraFun mark, instead of a plain solid border */}
+        <div className="h-[3px] w-full bg-[linear-gradient(to_right,var(--color-harbor),var(--color-therafun-sky),var(--color-therafun-lime),var(--color-amber))]" />
+
+        <div className="mx-auto grid max-w-[96rem] grid-cols-[auto_1fr_auto] items-center gap-4 px-4 py-4 sm:px-6 sm:py-5">
           <a href="#top" className="flex items-center gap-3" aria-label="TheraFun Intervention Centre home">
-            <BrandLogo eager className="h-16 w-auto sm:h-20" />
+            <BrandLogo eager className="h-20 w-auto sm:h-24" />
           </a>
 
-          <nav className="hidden items-center gap-6 md:flex lg:gap-8">
+          {/* Centered regardless of how wide the logo or CTA group are, since
+              this is its own grid cell rather than a flex-between sibling */}
+          <nav className="hidden items-center justify-self-center gap-5 md:flex lg:gap-9">
             {LINKS.map((l) => (
               <a
                 key={l.href}
                 href={l.href}
-                className="group relative text-sm font-semibold uppercase tracking-wide text-ink/80 transition hover:text-harbor"
+                className="group relative whitespace-nowrap text-sm font-semibold uppercase tracking-wide text-ink/80 transition hover:text-harbor lg:text-base xl:text-lg"
               >
                 {l.label}
                 <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-sunrise transition-all duration-300 group-hover:w-full" />
@@ -101,20 +107,28 @@ export default function PublicNavbar() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-3">
-            <Link
-              to="/enroll"
-              className="hidden rounded-full bg-sunrise px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:brightness-110 sm:inline-flex"
-            >
-              Enroll
-            </Link>
+          {/* Enroll + Login - pinned top-right, always visible from sm up */}
+          <div className="flex items-center justify-self-end gap-3">
             <Link
               to="/login"
-              className="rounded-full bg-harbor px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-harbor-dark"
+              className="hidden rounded-full border border-harbor/20 bg-white/80 px-5 py-2.5 text-base font-semibold text-harbor-dark shadow-sm transition duration-200 hover:bg-harbor-light sm:inline-flex"
             >
               Login
             </Link>
-            {/* Mobile lang 'to - sa desktop nasa nav bar na lahat ng links */}
+            <Link
+              to="/enroll"
+              className="hidden items-center gap-1.5 rounded-full bg-sunrise px-5 py-2.5 text-base font-bold text-white shadow-[0_8px_20px_-6px_rgba(184,78,0,0.55)] transition duration-200 hover:brightness-110 sm:inline-flex"
+            >
+              Enroll
+              <ArrowRight size={16} />
+            </Link>
+            {/* Mobile lang 'to - sa desktop nasa itaas na ang mga button */}
+            <Link
+              to="/login"
+              className="rounded-full bg-harbor px-4 py-2 text-sm font-bold text-white shadow-sm transition duration-200 hover:bg-harbor-dark sm:hidden"
+            >
+              Login
+            </Link>
             <button
               onClick={() => setOpen(true)}
               className="flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-ink transition hover:bg-chalk md:hidden"
@@ -144,7 +158,7 @@ export default function PublicNavbar() {
           style={{ transform: "translateX(100%)" }}
         >
           <div className="mb-8 flex items-center justify-between">
-            <BrandLogo eager className="h-16 w-auto" />
+            <BrandLogo eager className="h-20 w-auto" />
             <button onClick={() => setOpen(false)} aria-label="Close menu" className="text-mist hover:text-ink">
               <X size={22} />
             </button>

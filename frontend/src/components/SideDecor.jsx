@@ -1,4 +1,4 @@
-import { PuzzleIcon, Sparkles, Star } from "lucide-react";
+import { PuzzleIcon, Sparkles, Star, Heart, Activity } from "lucide-react";
 
 
 const GUTTER =
@@ -40,6 +40,12 @@ export default function SideDecor() {
         </div>
 
         <Star className="absolute left-[30%] top-[80%] fill-therafun-lime text-therafun-lime-dark" size={18} />
+
+        <div className="animate-float absolute left-[18%] top-[60%]" style={{ animationDelay: "-2.4s" }}>
+          <div className="blob-1 flex h-14 w-14 items-center justify-center bg-therafun-sky-light shadow-sm">
+            <Heart size={22} className="fill-therafun-sky-dark text-therafun-sky-dark" />
+          </div>
+        </div>
       </div>
 
       {/* Kanang gilid */}
@@ -51,6 +57,12 @@ export default function SideDecor() {
         </div>
 
         <Sparkles className="absolute right-[52%] top-[14%] text-amber" size={22} strokeWidth={1.75} />
+
+        <div className="animate-float absolute right-[20%] top-[80%]" style={{ animationDelay: "-4.2s" }}>
+          <div className="blob-3 flex h-12 w-12 items-center justify-center bg-harbor-light shadow-sm">
+            <Activity size={20} className="text-harbor-dark" />
+          </div>
+        </div>
       </div>
     </>
   );

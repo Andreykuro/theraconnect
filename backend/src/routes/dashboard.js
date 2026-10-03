@@ -72,7 +72,7 @@ function parentHome(req, res) {
     .prepare(
       `SELECT m.*, u.name AS sender_name FROM messages m
        JOIN users u ON u.id = m.sender_id
-       WHERE m.client_id = ? AND m.sender_role != 'parent' AND m.read_at IS NULL
+       WHERE m.client_id = ? AND m.sender_role != 'parent' AND m.read_at IS NULL AND m.deleted_at IS NULL
        ORDER BY m.created_at DESC LIMIT 5`
     )
     .all(client.id);
@@ -94,7 +94,7 @@ function parentHome(req, res) {
       id: `msg-${m.id}`,
       type: "message",
       priority: "medium",
-      message: `${m.sender_name}: ${truncate(m.body)}`,
+      message: `${m.sender_name}: ${m.body ? truncate(m.body) : "Sent a photo"}`,
       created_at: m.created_at,
       link: "/parent/messages",
     })),
@@ -163,7 +163,7 @@ function therapistHome(req, res) {
        FROM messages m
        JOIN users u ON u.id = m.sender_id
        JOIN clients c ON c.id = m.client_id
-       WHERE c.therapist_id = ? AND m.sender_role = 'parent' AND m.read_at IS NULL
+       WHERE c.therapist_id = ? AND m.sender_role = 'parent' AND m.read_at IS NULL AND m.deleted_at IS NULL
        ORDER BY m.created_at DESC LIMIT 5`
     )
     .all(therapistId);
@@ -181,7 +181,7 @@ function therapistHome(req, res) {
       id: `msg-${m.id}`,
       type: "message",
       priority: "medium",
-      message: `${m.sender_name}: ${truncate(m.body)}`,
+      message: `${m.sender_name}: ${m.body ? truncate(m.body) : "Sent a photo"}`,
       created_at: m.created_at,
       link: "/therapist/messages",
     })),

@@ -4,6 +4,13 @@ import api from "../../lib/api";
 import DashboardLayout from "../../components/DashboardLayout";
 import ChatThread from "../../components/ChatThread";
 
+function toFormData(body, file) {
+  const fd = new FormData();
+  fd.append("body", body || "");
+  fd.append("image", file);
+  return fd;
+}
+
 export default function TherapistMessages() {
   const [threads, setThreads] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -28,12 +35,24 @@ export default function TherapistMessages() {
   }, [selected]);
 
   const sendMessage = useCallback(
-    async (body) => {
-      const { data } = await api.post(`/messages/clients/${selected}`, { body });
+    async (body, file) => {
+      // Photo -> multipart form; text only -> plain JSON like before
+      const payload = file ? toFormData(body, file) : { body };
+      const { data } = await api.post(`/messages/clients/${selected}`, payload);
       return data;
     },
     [selected]
   );
+
+  const editMessage = useCallback(async (messageId, body) => {
+    const { data } = await api.patch(`/messages/${messageId}`, { body });
+    return data;
+  }, []);
+
+  const unsendMessage = useCallback(async (messageId) => {
+    const { data } = await api.delete(`/messages/${messageId}`);
+    return data;
+  }, []);
 
   return (
     <DashboardLayout title="Messages" subtitle="Chat with the families on your caseload">
@@ -70,6 +89,8 @@ export default function TherapistMessages() {
             role="therapist"
             fetchThread={fetchThread}
             sendMessage={sendMessage}
+            onEditMessage={editMessage}
+            onUnsendMessage={unsendMessage}
             emptyLabel="No messages yet — send a note to this family."
           />
         ) : (
