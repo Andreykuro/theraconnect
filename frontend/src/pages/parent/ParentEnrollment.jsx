@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import api from "../../lib/api";
 import DashboardLayout from "../../components/DashboardLayout";
+import PrivateImage from "../../components/PrivateImage";
 
 export default function ParentEnrollment() {
   const location = useLocation();
@@ -168,16 +169,13 @@ export default function ParentEnrollment() {
               <SectionTitle icon={FileImage} title="Doctor's notes & diagnosis" />
               <div className="flex flex-wrap gap-3">
                 {attachments.map((file) => (
-                  <a
+                  <PrivateImage
                     key={file.id}
-                    href={file.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="group relative h-20 w-20 overflow-hidden rounded-xl ring-1 ring-mist-light transition hover:ring-harbor"
+                    src={file.url}
+                    alt={file.original_name}
                     title={file.original_name}
-                  >
-                    <img src={file.url} alt={file.original_name} className="h-full w-full object-cover" />
-                  </a>
+                    className="group relative h-20 w-20 overflow-hidden rounded-xl ring-1 ring-mist-light transition hover:ring-harbor"
+                  />
                 ))}
                 <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-mist-light text-mist transition hover:border-harbor hover:text-harbor">
                   {uploading ? <Loader2 size={18} className="animate-spin" /> : <ImagePlus size={18} />}

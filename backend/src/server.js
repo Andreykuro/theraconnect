@@ -7,6 +7,12 @@ const path = require("path");
 const db = require("./db");
 
 async function main() {
+  // Without a secret every login and token check fails with a confusing
+  // "secretOrPrivateKey must have a value" error - stop early and say why.
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET is missing - add JWT_SECRET=<any long random text> to backend/.env");
+  }
+
   await db.ready; // sql.js loads its WASM binary asynchronously - wait for it
                    // before requiring routes, so every db.prepare(...) below
                    // sees a fully-initialized database.
@@ -36,7 +42,10 @@ async function main() {
 
   app.get("/api/health", (req, res) => res.json({ ok: true, service: "TheraConnect API" }));
 
-  app.use("/api/uploads", express.static(path.join(__dirname, "..", "uploads")));
+  // Only classwork worksheets/submissions are served as plain files. Enrollment
+  // diagnosis documents are medical records, so they go through the login-checked
+  // GET /api/enrollment/attachments/:id/file route instead (never public).
+  app.use("/api/uploads/classwork", express.static(path.join(__dirname, "..", "uploads", "classwork")));
 
   app.use("/api/auth", authRoutes);
   app.use("/api/enrollment", enrollmentRoutes);

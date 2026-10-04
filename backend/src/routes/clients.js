@@ -19,7 +19,11 @@ router.get("/", requireAuth, requireRole("admin", "therapist"), (req, res) => {
 router.get("/:id", requireAuth, (req, res) => {
   const client = db.prepare("SELECT * FROM clients WHERE id = ?").get(req.params.id);
   if (!client) return res.status(404).json({ error: "Client not found" });
-  if (req.user.role === "parent" && client.user_id !== req.user.id) {
+  if (req.user.role === "parent" && Number(client.user_id) !== Number(req.user.id)) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  // Therapists only see children on their own caseload (guardian contact details included)
+  if (req.user.role === "therapist" && Number(client.therapist_id) !== Number(req.user.therapist_id)) {
     return res.status(403).json({ error: "Forbidden" });
   }
   res.json(client);

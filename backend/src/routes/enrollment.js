@@ -38,7 +38,7 @@ function attachmentsFor(clientId) {
   return db
     .prepare(
       `SELECT id, label, original_name, mime_type, size_bytes, created_at,
-              '/api/uploads/enrollment/' || filename AS url
+              '/api/enrollment/attachments/' || id || '/file' AS url
        FROM client_attachments WHERE client_id = ? ORDER BY created_at DESC`
     )
     .all(clientId);
@@ -300,6 +300,30 @@ router.get("/:clientId/attachments", requireAuth, (req, res) => {
   if (!allowed) return res.status(403).json({ error: "Forbidden" });
 
   res.json(attachmentsFor(client.id));
+});
+
+// The actual diagnosis image - same access rule as the list above: admin,
+// the assigned therapist, or the child's own parent. Never served publicly.
+router.get("/attachments/:id/file", requireAuth, (req, res) => {
+  const file = db
+    .prepare(
+      `SELECT a.filename, a.mime_type, a.original_name, c.user_id, c.therapist_id
+       FROM client_attachments a JOIN clients c ON c.id = a.client_id WHERE a.id = ?`
+    )
+    .get(req.params.id);
+  if (!file) return res.status(404).json({ error: "File not found" });
+
+  const allowed =
+    req.user.role === "admin" ||
+    (req.user.role === "therapist" && Number(file.therapist_id) === Number(req.user.therapist_id)) ||
+    (req.user.role === "parent" && Number(file.user_id) === Number(req.user.id));
+  if (!allowed) return res.status(403).json({ error: "Forbidden" });
+
+  res.set("Cache-Control", "private, max-age=3600");
+  res.type(file.mime_type || "application/octet-stream");
+  res.sendFile(path.join(UPLOAD_DIR, path.basename(file.filename)), (err) => {
+    if (err && !res.headersSent) res.status(404).json({ error: "File not found" });
+  });
 });
 
 // Friendly error message when multer rejects a file (wrong type / too large)

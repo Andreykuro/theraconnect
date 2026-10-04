@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+ import { useEffect, useState, useCallback } from "react";
 import { format, parseISO } from "date-fns";
 import { Check, FileImage, Loader2, ShieldCheck, X } from "lucide-react";
 import api from "../../lib/api";
 import DashboardLayout from "../../components/DashboardLayout";
+import PrivateImage from "../../components/PrivateImage";
 
 export default function Registrations() {
   const [rows, setRows] = useState([]);
@@ -104,15 +105,13 @@ function RegistrationCard({ row, onDone }) {
           <p className="mb-2 text-xs font-bold uppercase tracking-wide text-mist">Attached photos</p>
           <div className="flex flex-wrap gap-2">
             {row.attachments.map((file) => (
-              <a
-                key={file.id}
-                href={file.url}
-                target="_blank"
-                rel="noreferrer"
-                className="group relative h-16 w-16 overflow-hidden rounded-lg ring-1 ring-mist-light transition hover:ring-harbor"
-              >
-                <img src={file.url} alt={file.original_name} className="h-full w-full object-cover" />
-              </a>
+              <PrivateImage
+                    key={file.id}
+                    src={file.url}
+                    alt={file.original_name}
+                    title={file.original_name}
+                    className="group relative h-16 w-16 overflow-hidden rounded-lg ring-1 ring-mist-light transition hover:ring-harbor"
+                  />
             ))}
           </div>
         </div>

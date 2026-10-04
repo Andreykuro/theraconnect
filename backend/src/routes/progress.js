@@ -470,5 +470,4 @@ router.post(
 module.exports = router;
 // Bukas din ang helper functions na 'to para magamit ulit ng dashboard.js -
 // wag na ulitin yung parehong client + progress query doon.
-module.exports.getClient = getClient;
 module.exports.progressForClient = progressForClient;

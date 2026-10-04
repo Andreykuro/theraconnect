@@ -1,7 +1,7 @@
 const express = require("express");
 const db = require("../db");
 const { requireAuth, requireRole } = require("../middleware/auth");
-const { sendSMS } = require("../services/notify");
+const { sendSMS, formatSessionTime: when } = require("../services/notify");
 
 const router = express.Router();
 
@@ -23,6 +23,22 @@ function hasConflict({ therapist_id, start_time, end_time, excludeId }) {
     )
     .get(therapist_id, excludeId ?? null, end_time, start_time);
   return row.n > 0;
+}
+
+// Returns an error message, or null when the start/end pair is usable.
+function invalidTimes(start_time, end_time, { allowPast = false } = {}) {
+  const start = new Date(start_time);
+  const end = new Date(end_time);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "Invalid start or end time";
+  if (start >= end) return "start_time must be before end_time";
+  if (!allowPast && start < new Date()) return "That time has already passed - please pick a future slot";
+  return null;
+}
+
+// Therapists may only change their own sessions; admins can change any.
+function canManage(user, appt) {
+  if (user.role === "admin") return true;
+  return user.role === "therapist" && Number(appt.therapist_id) === Number(user.therapist_id);
 }
 
 // GET /api/appointments?start=&end=
@@ -122,6 +138,15 @@ router.post("/book", requireAuth, requireRole("parent"), (req, res) => {
       .status(400)
       .json({ error: "No client profile is linked to your account yet - please contact the front desk." });
   }
+  // The parent portal hides booking until enrollment is approved - enforce it here too.
+  if (client.status !== "active") {
+    return res.status(403).json({ error: "Booking opens once your child's registration is approved." });
+  }
+  if (!db.prepare("SELECT id FROM therapists WHERE id = ?").get(therapist_id)) {
+    return res.status(400).json({ error: "Therapist not found" });
+  }
+  const timeError = invalidTimes(start_time, end_time);
+  if (timeError) return res.status(400).json({ error: timeError });
 
   if (hasConflict({ therapist_id, start_time, end_time })) {
     return res.status(409).json({ error: "Sorry, that slot was just taken. Please pick another." });
@@ -141,7 +166,7 @@ router.post("/book", requireAuth, requireRole("parent"), (req, res) => {
   sendSMS({
     to: appt.guardian_phone,
     appointmentId: appt.id,
-    message: `We got your request! ${appt.service_type} with ${appt.therapist_name} on ${appt.start_time}. We'll text you once the clinic confirms it.`,
+    message: `We got your request! ${appt.service_type} with ${appt.therapist_name} on ${when(appt.start_time)}. We'll text you once the clinic confirms it.`,
   }).catch(() => {});
 
   res.status(201).json(appt);
@@ -153,8 +178,10 @@ router.post("/", requireAuth, requireRole("admin", "therapist"), (req, res) => {
   if (!client_id || !therapist_id || !service_type || !start_time || !end_time) {
     return res.status(400).json({ error: "Missing required fields" });
   }
-  if (new Date(start_time) >= new Date(end_time)) {
-    return res.status(400).json({ error: "start_time must be before end_time" });
+  const timeError = invalidTimes(start_time, end_time, { allowPast: true });
+  if (timeError) return res.status(400).json({ error: timeError });
+  if (req.user.role === "therapist" && Number(therapist_id) !== Number(req.user.therapist_id)) {
+    return res.status(403).json({ error: "You can only schedule sessions for yourself" });
   }
   if (hasConflict({ therapist_id, start_time, end_time })) {
     return res.status(409).json({ error: "This therapist already has a session in that time slot" });
@@ -172,7 +199,7 @@ router.post("/", requireAuth, requireRole("admin", "therapist"), (req, res) => {
   sendSMS({
     to: appt.guardian_phone,
     appointmentId: appt.id,
-    message: `Hello! Your ${appt.service_type} schedule is on ${appt.start_time}. Kindly confirm if you can attend. Thank you!`,
+    message: `Hello! Your ${appt.service_type} schedule is on ${when(appt.start_time)}. Kindly confirm if you can attend. Thank you!`,
   }).catch(() => {});
 
   res.status(201).json(appt);
@@ -182,12 +209,21 @@ router.post("/", requireAuth, requireRole("admin", "therapist"), (req, res) => {
 router.put("/:id", requireAuth, requireRole("admin", "therapist"), (req, res) => {
   const existing = db.prepare("SELECT * FROM appointments WHERE id = ?").get(req.params.id);
   if (!existing) return res.status(404).json({ error: "Appointment not found" });
+  if (!canManage(req.user, existing)) {
+    return res.status(403).json({ error: "You can only change your own sessions" });
+  }
 
   const therapist_id = req.body.therapist_id ?? existing.therapist_id;
   const start_time = req.body.start_time ?? existing.start_time;
   const end_time = req.body.end_time ?? existing.end_time;
   const service_type = req.body.service_type ?? existing.service_type;
   const notes = req.body.notes ?? existing.notes;
+
+  if (req.user.role === "therapist" && Number(therapist_id) !== Number(req.user.therapist_id)) {
+    return res.status(403).json({ error: "Only the front desk can move a session to another therapist" });
+  }
+  const timeError = invalidTimes(start_time, end_time, { allowPast: true });
+  if (timeError) return res.status(400).json({ error: timeError });
 
   if (hasConflict({ therapist_id, start_time, end_time, excludeId: existing.id })) {
     return res.status(409).json({ error: "This therapist already has a session in that time slot" });
@@ -202,7 +238,7 @@ router.put("/:id", requireAuth, requireRole("admin", "therapist"), (req, res) =>
   sendSMS({
     to: appt.guardian_phone,
     appointmentId: appt.id,
-    message: `Hi! Your ${appt.service_type} schedule was updated to ${appt.start_time}. Kindly confirm if you can attend.`,
+    message: `Hi! Your ${appt.service_type} schedule was updated to ${when(appt.start_time)}. Kindly confirm if you can attend.`,
   }).catch(() => {});
 
   res.json(appt);
@@ -222,7 +258,7 @@ router.post("/:id/approve", requireAuth, requireRole("admin"), (req, res) => {
   sendSMS({
     to: updated.guardian_phone,
     appointmentId: updated.id,
-    message: `Confirmed! Your ${updated.service_type} with ${updated.therapist_name} on ${updated.start_time} is set. See you then!`,
+    message: `Confirmed! Your ${updated.service_type} with ${updated.therapist_name} on ${when(updated.start_time)} is set. See you then!`,
   }).catch(() => {});
 
   res.json(updated);
@@ -243,16 +279,27 @@ router.post("/:id/decline", requireAuth, requireRole("admin"), (req, res) => {
   sendSMS({
     to: updated.guardian_phone,
     appointmentId: updated.id,
-    message: `Sorry, we're unable to confirm the ${updated.service_type} request for ${updated.start_time}${reason ? ` (${reason})` : ""}. Please pick another time.`,
+    message: `Sorry, we're unable to confirm the ${updated.service_type} request for ${when(updated.start_time)}${reason ? ` (${reason})` : ""}. Please pick another time.`,
   }).catch(() => {});
 
   res.json(updated);
 });
 
 // POST /api/appointments/:id/confirm  (parent confirms attendance)
+// Only a 'pending' session (scheduled by the clinic, waiting on the family)
+// can be confirmed. A 'requested' booking needs admin approval instead, and a
+// cancelled one stays cancelled.
 router.post("/:id/confirm", requireAuth, requireRole("parent", "admin"), (req, res) => {
-  const appt = db.prepare("SELECT * FROM appointments WHERE id = ?").get(req.params.id);
+  const appt = db
+    .prepare("SELECT a.*, c.user_id FROM appointments a JOIN clients c ON c.id = a.client_id WHERE a.id = ?")
+    .get(req.params.id);
   if (!appt) return res.status(404).json({ error: "Appointment not found" });
+  if (req.user.role === "parent" && Number(appt.user_id) !== Number(req.user.id)) {
+    return res.status(404).json({ error: "Appointment not found" });
+  }
+  if (appt.status !== "pending") {
+    return res.status(400).json({ error: "This session isn't waiting for confirmation" });
+  }
 
   db.prepare("UPDATE appointments SET status = 'confirmed' WHERE id = ?").run(appt.id);
   res.json(db.prepare(withDetails + " WHERE a.id = ?").get(appt.id));
@@ -262,6 +309,9 @@ router.post("/:id/confirm", requireAuth, requireRole("parent", "admin"), (req, r
 router.delete("/:id", requireAuth, requireRole("admin", "therapist"), (req, res) => {
   const appt = db.prepare("SELECT * FROM appointments WHERE id = ?").get(req.params.id);
   if (!appt) return res.status(404).json({ error: "Appointment not found" });
+  if (!canManage(req.user, appt)) {
+    return res.status(403).json({ error: "You can only cancel your own sessions" });
+  }
 
   db.prepare("UPDATE appointments SET status = 'cancelled' WHERE id = ?").run(appt.id);
   res.json({ ok: true });

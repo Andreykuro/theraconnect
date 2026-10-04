@@ -10,7 +10,7 @@ function attachmentsFor(clientId) {
   return db
     .prepare(
       `SELECT id, label, original_name, mime_type, size_bytes, created_at,
-              '/api/uploads/enrollment/' || filename AS url
+              '/api/enrollment/attachments/' || id || '/file' AS url
        FROM client_attachments WHERE client_id = ? ORDER BY created_at DESC`
     )
     .all(clientId);
