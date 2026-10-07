@@ -4,12 +4,18 @@ import { ClipboardList, Plus, Paperclip, Image as ImageIcon, CheckCircle2 } from
 import api from "../../lib/api";
 import DashboardLayout from "../../components/DashboardLayout";
 import ClassworkModal from "../../components/ClassworkModal";
-import { StarRow, StarPicker } from "../../components/StarRating";
+import { StarRow, StarPicker, STAR_MEANING } from "../../components/StarRating";
 
 const STATUS_STYLE = {
   assigned: "bg-amber-light text-amber",
   submitted: "bg-therafun-sky-light text-therafun-sky-dark",
   graded: "bg-harbor-light text-harbor-dark",
+};
+
+const STATUS_LABEL = {
+  assigned: "Waiting for parent",
+  submitted: "Ready to rate",
+  graded: "Rated",
 };
 
 export default function TherapistClasswork() {
@@ -138,7 +144,7 @@ function ClassworkRow({ item, grading, onStartGrade, onCancelGrade, onGraded }) 
   async function submitGrade(e) {
     e.preventDefault();
     if (!stars) {
-      setError("Please pick a star rating.");
+      setError("Please choose 1 to 5 stars.");
       return;
     }
     setError("");
@@ -150,7 +156,7 @@ function ClassworkRow({ item, grading, onStartGrade, onCancelGrade, onGraded }) 
       });
       onGraded();
     } catch (err) {
-      setError(err.response?.data?.error || "Couldn't save this grade.");
+      setError(err.response?.data?.error || "Couldn't save this rating.");
     } finally {
       setSaving(false);
     }
@@ -160,14 +166,14 @@ function ClassworkRow({ item, grading, onStartGrade, onCancelGrade, onGraded }) 
     <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-mist-light">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-mist">{item.category}</p>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-mist">Therapy type: {item.category}</p>
           <h3 className="font-display text-base font-semibold text-ink">{item.title}</h3>
           {item.due_date && (
             <p className="mt-0.5 text-xs text-mist">Due {format(parseISO(item.due_date), "MMM d, yyyy")}</p>
           )}
         </div>
         <span className={`stamp flex-shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase ${STATUS_STYLE[item.status]}`}>
-          {item.status}
+          {STATUS_LABEL[item.status] || item.status}
         </span>
       </div>
 
@@ -189,7 +195,7 @@ function ClassworkRow({ item, grading, onStartGrade, onCancelGrade, onGraded }) 
         <div className="mt-4 rounded-xl bg-chalk p-3">
           <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-ink">
             <CheckCircle2 size={13} className="text-harbor" />
-            Submitted {format(parseISO(item.submitted_at.replace(" ", "T")), "MMM d, h:mm a")}
+            Parent submitted {format(parseISO(item.submitted_at.replace(" ", "T")), "MMM d, h:mm a")}
           </p>
           {item.submission_note && <p className="text-sm text-mist">{item.submission_note}</p>}
           {item.submission_url && (
@@ -208,7 +214,10 @@ function ClassworkRow({ item, grading, onStartGrade, onCancelGrade, onGraded }) 
 
       {item.status === "graded" && (
         <div className="mt-3 rounded-xl bg-harbor-light p-3">
-          <StarRow value={item.star_rating} />
+          <div className="flex items-center gap-2">
+            <StarRow value={item.star_rating} />
+            <span className="text-xs font-semibold text-harbor-dark">{STAR_MEANING[item.star_rating]}</span>
+          </div>
           {item.feedback && <p className="mt-1 text-sm text-ink">{item.feedback}</p>}
         </div>
       )}
@@ -218,21 +227,21 @@ function ClassworkRow({ item, grading, onStartGrade, onCancelGrade, onGraded }) 
           onClick={onStartGrade}
           className="mt-3 rounded-lg bg-harbor px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-harbor-dark"
         >
-          Grade this
+          Rate this work
         </button>
       )}
 
       {item.status === "submitted" && grading && (
         <form onSubmit={submitGrade} className="mt-3 space-y-2 border-t border-mist-light pt-3">
           <div>
-            <label className="mb-1 block text-xs font-semibold text-mist">Star rating</label>
+            <label className="mb-1 block text-xs font-semibold text-mist">How well did the child do? (1 to 5 stars)</label>
             <StarPicker value={stars} onChange={setStars} />
           </div>
           <textarea
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             rows={2}
-            placeholder="Remarks for the family (optional)"
+            placeholder="Feedback for the parent (optional), e.g. Great job! Practice the last 3 words again."
             className="w-full resize-none rounded-lg border border-mist-light px-3 py-2 text-sm outline-none focus:border-harbor"
           />
           {error && <p className="text-xs text-coral-red">{error}</p>}
@@ -242,7 +251,7 @@ function ClassworkRow({ item, grading, onStartGrade, onCancelGrade, onGraded }) 
               disabled={saving}
               className="rounded-lg bg-harbor px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-harbor-dark disabled:opacity-50"
             >
-              {saving ? "Saving…" : "Save grade"}
+              {saving ? "Saving…" : "Save rating"}
             </button>
             <button
               type="button"

@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const db = require("../db");
+const { therapistCanAccess, ON_CASELOAD_SQL } = require("../services/careTeam");
 const { requireAuth, requireRole } = require("../middleware/auth");
 
 const router = express.Router();
@@ -53,7 +54,7 @@ function getClient(clientId) {
 function canAccessClient(user, client) {
   if (!client) return false;
   if (user.role === "admin") return true;
-  if (user.role === "therapist") return Number(client.therapist_id) === Number(user.therapist_id);
+  if (user.role === "therapist") return therapistCanAccess(user, client);
   return user.role === "parent" && Number(client.user_id) === Number(user.id);
 }
 
@@ -67,12 +68,20 @@ function getMessageWithSender(id) {
 }
 
 function threadFor(clientId, readerRole) {
-  // Mark the other party's messages as read the moment this thread is opened.
-  const otherRole = readerRole === "therapist" ? "parent" : "therapist";
-  db.prepare(
-    `UPDATE messages SET read_at = datetime('now')
-     WHERE client_id = ? AND sender_role = ? AND read_at IS NULL`
-  ).run(clientId, otherRole);
+  // Mark the other side's messages as read the moment this thread is opened.
+  // Parents read everything the clinic sent (therapist or admin); therapists
+  // read the parent's messages. An admin just looking doesn't mark anything.
+  if (readerRole === "parent") {
+    db.prepare(
+      `UPDATE messages SET read_at = datetime('now')
+       WHERE client_id = ? AND sender_role != 'parent' AND read_at IS NULL`
+    ).run(clientId);
+  } else if (readerRole === "therapist") {
+    db.prepare(
+      `UPDATE messages SET read_at = datetime('now')
+       WHERE client_id = ? AND sender_role = 'parent' AND read_at IS NULL`
+    ).run(clientId);
+  }
 
   const client = db.prepare("SELECT id, name, therapist_id FROM clients WHERE id = ?").get(clientId);
   const messages = db
@@ -125,15 +134,36 @@ router.post("/me", requireAuth, requireRole("parent"), upload.single("image"), (
   res.status(201).json(message);
 });
 
+// --- Unread badge for the sidebar Messages link ---
+router.get("/unread-count", requireAuth, (req, res) => {
+  let count = 0;
+  if (req.user.role === "parent") {
+    count = db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM messages m JOIN clients c ON c.id = m.client_id
+         WHERE c.user_id = ? AND m.sender_role != 'parent' AND m.read_at IS NULL AND m.deleted_at IS NULL`
+      )
+      .get(req.user.id).n;
+  } else if (req.user.role === "therapist") {
+    count = db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM messages m JOIN clients c ON c.id = m.client_id
+         WHERE ${ON_CASELOAD_SQL} AND m.sender_role = 'parent' AND m.read_at IS NULL AND m.deleted_at IS NULL`
+      )
+      .get(req.user.therapist_id, req.user.therapist_id).n;
+  }
+  res.json({ count });
+});
+
 // --- Therapist inbox: one row per assigned client, with last message + unread count ---
 router.get("/threads", requireAuth, requireRole("therapist", "admin"), (req, res) => {
-  let sql = "SELECT id, name FROM clients WHERE 1=1";
+  let sql = "SELECT c.id, c.name FROM clients c WHERE 1=1";
   const params = [];
   if (req.user.role === "therapist") {
-    sql += " AND therapist_id = ?";
-    params.push(req.user.therapist_id);
+    sql += ` AND ${ON_CASELOAD_SQL}`;
+    params.push(req.user.therapist_id, req.user.therapist_id);
   }
-  sql += " ORDER BY name ASC";
+  sql += " ORDER BY c.name ASC";
 
   const threads = db
     .prepare(sql)

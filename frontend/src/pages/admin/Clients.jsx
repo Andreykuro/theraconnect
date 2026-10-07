@@ -32,7 +32,8 @@ export default function Clients() {
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.guardian_name.toLowerCase().includes(q) ||
-        (c.therapist_name || "").toLowerCase().includes(q)
+        (c.therapist_name || "").toLowerCase().includes(q) ||
+        (c.additional_therapists || []).some((t) => t.name.toLowerCase().includes(q))
     );
   }, [clients, query]);
 
@@ -66,7 +67,7 @@ export default function Clients() {
             <tr>
               <th className="px-4 py-3 font-semibold">Child</th>
               <th className="px-4 py-3 font-semibold">Service</th>
-              <th className="px-4 py-3 font-semibold">Therapist</th>
+              <th className="px-4 py-3 font-semibold">Therapists</th>
               <th className="px-4 py-3 font-semibold">Guardian</th>
               <th className="px-4 py-3 font-semibold">Contact</th>
               <th className="px-4 py-3" />
@@ -77,7 +78,14 @@ export default function Clients() {
               <tr key={c.id} className="transition hover:bg-chalk">
                 <td className="px-4 py-3 font-medium text-ink">{c.name}</td>
                 <td className="px-4 py-3 text-mist">{c.service_type}</td>
-                <td className="px-4 py-3 text-mist">{c.therapist_name || "Unassigned"}</td>
+                <td className="px-4 py-3 text-mist">
+                  {c.therapist_name || "Unassigned"}
+                  {c.additional_therapists?.length > 0 && (
+                    <span className="mt-0.5 block text-xs text-mist/80">
+                      + {c.additional_therapists.map((t) => t.name).join(", ")}
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-mist">{c.guardian_name}</td>
                 <td className="px-4 py-3 font-mono text-xs text-mist">{c.guardian_phone}</td>
                 <td className="px-4 py-3 text-right">

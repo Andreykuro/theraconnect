@@ -54,11 +54,14 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+/* In the base layer so Tailwind text-* classes on buttons and inputs win. */
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 ::selection {
@@ -150,175 +153,184 @@ textarea {
 .blob-2 { border-radius: 42% 58% 68% 32% / 55% 42% 58% 45%; }
 .blob-3 { border-radius: 58% 42% 39% 61% / 62% 47% 53% 38%; }
 
-/* FullCalendar - restyled as a digital version of the clinic's paper
-   appointment board: events render as small ticket stubs (reusing the same
-   perforated-edge motif as SessionCard) rather than generic solid blocks. */
+/* FullCalendar - TheraConnect schedule board. Events are soft "ticket"
+   cards tinted with the therapist's colour; the status changes the edge
+   (dashed = request, hatched = awaiting parent, solid = confirmed). */
 .tc-calendar .fc {
   font-family: var(--font-body);
-  --fc-border-color: var(--color-mist-light);
+  --fc-border-color: #efeaf2;
   --fc-today-bg-color: transparent;
   --fc-neutral-bg-color: var(--color-chalk);
   --fc-page-bg-color: transparent;
   --fc-now-indicator-color: var(--color-sunrise);
+  --fc-highlight-color: color-mix(in srgb, var(--color-harbor) 12%, transparent);
+  --fc-non-business-color: color-mix(in srgb, var(--color-chalk) 85%, var(--color-mist-light));
   font-size: 13px;
 }
-
-/* Toolbar */
-.tc-calendar .fc-header-toolbar {
-  margin-bottom: 1.25rem !important;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-.tc-calendar .fc-toolbar-title {
-  font-family: var(--font-display);
-  font-size: 1.125rem !important;
-  font-weight: 700;
-  color: var(--color-ink);
-}
-.tc-calendar .fc-button {
-  background: var(--color-chalk) !important;
-  border: 1px solid var(--color-mist-light) !important;
-  color: var(--color-ink) !important;
-  box-shadow: none !important;
-  font-weight: 600;
-  text-transform: capitalize;
-  padding: 0.4rem 0.85rem !important;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-.tc-calendar .fc-button:hover {
-  background: var(--color-harbor-light) !important;
-  color: var(--color-harbor-dark) !important;
-}
-.tc-calendar .fc-button-primary:not(:disabled).fc-button-active,
-.tc-calendar .fc-button-primary:not(:disabled):active {
-  background: var(--color-harbor) !important;
-  border-color: var(--color-harbor) !important;
-  color: #fff !important;
-}
-.tc-calendar .fc-button-group {
-  border-radius: 9999px;
-  overflow: hidden;
-  border: 1px solid var(--color-mist-light);
-}
-.tc-calendar .fc-button-group .fc-button {
+.tc-calendar .fc-scrollgrid {
   border: none !important;
-  border-radius: 0 !important;
 }
-.tc-calendar .fc-today-button {
-  border-radius: 9999px !important;
+.tc-calendar .fc-theme-standard td,
+.tc-calendar .fc-theme-standard th {
+  border-color: #efeaf2;
 }
-.tc-calendar .fc-prev-button,
-.tc-calendar .fc-next-button {
-  border-radius: 9999px !important;
-  width: 2.1rem;
-  padding: 0.4rem !important;
+
+/* Day headers: small weekday + big date, today in a filled badge */
+.tc-calendar .fc-col-header-cell {
+  padding: 0.5rem 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+.tc-calendar .fc-col-header-cell-cushion {
+  padding: 0 !important;
+}
+.tc-dayhead {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.tc-dayhead-week {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-mist);
+}
+.tc-dayhead-num {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-/* Column headers - today gets a filled circular date badge, like a paper
-   desk calendar with today's page dog-eared */
-.tc-calendar .fc-col-header-cell {
-  padding: 0.6rem 0 !important;
-  border-color: var(--color-mist-light);
-}
-.tc-calendar .fc-col-header-cell-cushion {
-  color: var(--color-mist);
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 16px;
   font-weight: 600;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 2px 4px !important;
-}
-.tc-calendar .fc-day-today .fc-col-header-cell-cushion {
   color: var(--color-ink);
 }
-.tc-calendar .fc-timegrid-axis,
-.tc-calendar .fc-timegrid-slot-label {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--color-mist);
+.tc-dayhead.is-today .tc-dayhead-week {
+  color: var(--color-harbor);
 }
-.tc-calendar .fc-timegrid-slot {
-  border-color: var(--color-mist-light) !important;
-  height: 2.75rem !important;
-}
-.tc-calendar .fc-timegrid-slot-minor {
-  border-style: dashed;
-}
-.tc-calendar .fc-day-today {
-  background: var(--color-chalk) !important;
-}
-.tc-calendar .fc-timegrid-col.fc-day-today {
-  background: color-mix(in srgb, var(--color-sunrise-light) 55%, transparent) !important;
+.tc-dayhead.is-today .tc-dayhead-num {
+  background: var(--color-harbor);
+  color: #fff;
+  box-shadow: 0 4px 10px -4px color-mix(in srgb, var(--color-harbor) 70%, transparent);
 }
 
-/* Now indicator: a slim accent line with a small dot at the axis edge */
+/* Time axis */
+.tc-calendar .fc-timegrid-axis,
+.tc-calendar .fc-timegrid-slot-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--color-mist);
+  border: none !important;
+}
+.tc-calendar .fc-timegrid-slot-label-cushion {
+  padding-right: 10px !important;
+  text-transform: lowercase;
+}
+.tc-calendar .fc-timegrid-slot {
+  height: 2.4rem !important;
+}
+.tc-calendar .fc-timegrid-slot-lane.fc-timegrid-slot-minor {
+  border-top-style: dotted !important;
+}
+.tc-calendar .fc-timegrid-slot-label.fc-timegrid-slot-minor {
+  border-top-color: transparent !important;
+}
+.tc-calendar .fc-timegrid-col.fc-day-today {
+  background: color-mix(in srgb, var(--color-harbor-light) 45%, transparent) !important;
+}
+.tc-calendar .fc-daygrid-day.fc-day-today {
+  background: color-mix(in srgb, var(--color-harbor-light) 45%, transparent) !important;
+}
+.tc-calendar .fc-daygrid-day-number {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-mist);
+  padding: 6px 8px !important;
+}
+.tc-calendar .fc-day-today .fc-daygrid-day-number {
+  color: var(--color-harbor);
+}
+.tc-calendar .fc-daygrid-more-link {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-harbor);
+}
+
+/* Now indicator */
 .tc-calendar .fc-timegrid-now-indicator-line {
   border-color: var(--color-sunrise) !important;
-  border-width: 1.5px 0 0 0;
+  border-width: 2px 0 0 0;
 }
 .tc-calendar .fc-timegrid-now-indicator-arrow {
   border-color: var(--color-sunrise) !important;
   border-width: 5px 0 5px 6px;
 }
 
-/* Event reset - our custom eventContent renders the full ticket card, so
-   strip FullCalendar's own background/border/padding chrome entirely */
-.tc-calendar .fc-event {
-  background: transparent;
-  border: none;
+/* Event reset - eventContent renders the ticket */
+.tc-calendar .fc-event,
+.tc-calendar .fc-event:focus {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   cursor: pointer;
-  padding: 1px 3px;
+}
+.tc-calendar .fc-timegrid-event-harness {
+  margin-right: 3px;
+}
+.tc-calendar .fc-timegrid-event-harness-inset .fc-timegrid-event {
+  box-shadow: none;
 }
 .tc-calendar .fc-daygrid-event {
   margin-top: 2px;
 }
-.tc-calendar .fc-timegrid-event-harness {
-  margin-right: 2px;
+.tc-calendar .fc-event-mirror .tc-event-ticket {
+  opacity: 0.8;
+}
+.tc-calendar .fc-highlight {
+  border-radius: 8px;
 }
 
-/* Ticket-stub event card */
 .tc-event-ticket {
-  position: relative;
   height: 100%;
   display: flex;
   flex-direction: column;
   gap: 1px;
-  border-radius: 8px;
-  padding: 4px 7px 4px 10px;
+  border-radius: 10px;
+  padding: 5px 8px;
   overflow: hidden;
-  background: color-mix(in srgb, var(--tc-color) 8%, white);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc-color) 28%, transparent);
-}
-.tc-event-ticket::before {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: 3px;
-  bottom: 3px;
-  width: 1px;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--tc-color) 55%, transparent) 0,
-    color-mix(in srgb, var(--tc-color) 55%, transparent) 3px,
-    transparent 3px,
-    transparent 7px
-  );
+  background: color-mix(in srgb, var(--tc-color) 13%, white);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.15s;
 }
 .tc-event-ticket:hover {
-  background: color-mix(in srgb, var(--tc-color) 16%, white);
+  background: color-mix(in srgb, var(--tc-color) 20%, white);
+  box-shadow: 0 6px 14px -8px color-mix(in srgb, var(--tc-color) 70%, transparent);
 }
 .tc-event-time {
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
   color: color-mix(in srgb, var(--tc-color) 70%, var(--color-ink));
   line-height: 1.2;
 }
+.tc-event-time::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--tc-color);
+  flex-shrink: 0;
+}
+.tc-event-icon {
+  color: color-mix(in srgb, var(--tc-color) 70%, var(--color-ink));
+}
 .tc-event-title {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--color-ink);
   line-height: 1.25;
@@ -327,32 +339,101 @@ textarea {
   white-space: nowrap;
 }
 .tc-event-sub {
-  font-size: 10px;
+  font-size: 10.5px;
   color: var(--color-mist);
-  line-height: 1.2;
+  line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.tc-event-status {
+  align-self: flex-start;
+  margin-top: 2px;
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-size: 9.5px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--color-ink);
+}
+
+/* Status variants - shown with fill strength and a small label, no borders */
+.tc-st-requested .tc-event-ticket {
+  background: color-mix(in srgb, var(--tc-color) 6%, white);
+}
+.tc-st-requested .tc-event-status {
+  background: var(--color-therafun-sky-light);
+  color: var(--color-therafun-sky-dark);
+}
+.tc-st-pending .tc-event-ticket {
+  background: color-mix(in srgb, var(--tc-color) 9%, white);
+}
+.tc-st-pending .tc-event-status {
+  background: var(--color-amber-light);
+  color: #8a5a00;
+}
+.tc-st-confirmed .tc-event-ticket {
+  background: color-mix(in srgb, var(--tc-color) 18%, white);
+}
+.tc-st-confirmed .tc-event-status {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--color-harbor-dark);
+}
+.tc-st-completed .tc-event-ticket {
+  background: #f2f0f4;
+}
+.tc-st-completed .tc-event-ticket,
+.tc-st-completed .tc-event-title {
+  color: var(--color-mist);
+}
+.tc-st-cancelled .tc-event-ticket {
+  background: #f6f4f7;
+  opacity: 0.7;
+}
+.tc-st-cancelled .tc-event-title {
+  text-decoration: line-through;
+}
+
+/* Month view chip */
 .tc-event-dot {
   display: inline-block;
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 999px;
   flex-shrink: 0;
 }
-
-/* Compact month-view chip */
 .tc-event-chip {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 1px 4px;
-  border-radius: 999px;
-  font-size: 10.5px;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--color-ink);
+  background: color-mix(in srgb, var(--tc-color) 9%, white);
 }
 .tc-event-chip:hover {
-  background: var(--color-chalk);
+  background: color-mix(in srgb, var(--tc-color) 18%, white);
 }
+.tc-st-requested .tc-event-chip {
+  background: color-mix(in srgb, var(--tc-color) 5%, white);
+}
+.tc-st-completed .tc-event-chip,
+.tc-st-cancelled .tc-event-chip {
+  opacity: 0.55;
+}
+
+/* Legend dots */
+.tc-legend {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+.tc-legend-requested { background: var(--color-therafun-sky); }
+.tc-legend-pending { background: var(--color-amber); }
+.tc-legend-confirmed { background: var(--color-harbor); }
+.tc-legend-completed { background: var(--color-mist-light); }

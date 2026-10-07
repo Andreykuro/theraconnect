@@ -3,6 +3,7 @@ import { format, parseISO } from "date-fns";
 import { Bot, CheckCircle2, Loader2, ShieldCheck, Sparkles, X } from "lucide-react";
 import api from "../lib/api";
 import useModalEntrance from "../hooks/useModalEntrance";
+import { ASSISTANCE_SCALE, metricFor, withUnit } from "../lib/goalMetrics";
 
 const fieldClass =
   "w-full rounded-lg border border-mist-light px-3 py-2 text-sm outline-none focus:border-harbor";
@@ -239,54 +240,79 @@ export default function ProgressNoteModal({ client, goals, appointments, onClose
           </section>
 
           <section>
-            <h3 className="mb-1 font-display text-base font-semibold text-ink">Goal measurements</h3>
-            <p className="mb-3 text-xs text-mist">Leave a measurement empty when that goal was not assessed in this session.</p>
+            <h3 className="mb-1 font-display text-base font-semibold text-ink">Today's results per goal</h3>
+            <p className="mb-3 text-xs text-mist">
+              Enter what the child got in this session. Leave the result empty if you did not work on that goal today.
+            </p>
             {goals.length === 0 ? (
               <p className="rounded-xl bg-chalk px-4 py-5 text-sm text-mist">Add a treatment goal to begin automated scoring.</p>
             ) : (
               <div className="space-y-3">
-                {goals.map((goal) => (
-                  <div key={goal.id} className="rounded-xl border border-mist-light p-4">
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-ink">{goal.title}</p>
-                      <p className="text-xs text-mist">
-                        Baseline {goal.baseline} → target {goal.target} {goal.unit}
-                      </p>
+                {goals.map((goal) => {
+                  const metric = metricFor(goal.metric_type);
+                  return (
+                    <div key={goal.id} className="rounded-xl border border-mist-light p-4">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-ink">{goal.title}</p>
+                        <p className="text-xs text-mist">
+                          Started at <b>{withUnit(goal.baseline, goal.unit)}</b> · Target <b>{withUnit(goal.target, goal.unit)}</b>
+                        </p>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1.4fr]">
+                        <Field label="Today's result">
+                          {goal.metric_type === "assistance" ? (
+                            <select
+                              value={measurements[goal.id]?.value || ""}
+                              onChange={(event) => updateMeasurement(goal.id, "value", event.target.value)}
+                              className={fieldClass}
+                            >
+                              <option value="">Not worked on today</option>
+                              {ASSISTANCE_SCALE.map((level) => (
+                                <option key={level.value} value={level.value}>
+                                  {level.label}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                step="any"
+                                min={0}
+                                placeholder={metric.resultHint}
+                                value={measurements[goal.id]?.value || ""}
+                                onChange={(event) => updateMeasurement(goal.id, "value", event.target.value)}
+                                className={fieldClass}
+                              />
+                              <span className="flex-shrink-0 text-xs text-mist">{goal.unit}</span>
+                            </div>
+                          )}
+                        </Field>
+                        <Field label="Help given" optional>
+                          <select
+                            value={measurements[goal.id]?.assistance_level || ""}
+                            onChange={(event) => updateMeasurement(goal.id, "assistance_level", event.target.value)}
+                            className={fieldClass}
+                          >
+                            <option value="">Not recorded</option>
+                            <option value="independent">None (did it alone)</option>
+                            <option value="minimal">Minimal (a cue or reminder)</option>
+                            <option value="moderate">Moderate (some guidance)</option>
+                            <option value="maximum">Full (hand-over-hand)</option>
+                          </select>
+                        </Field>
+                        <Field label="Short note" optional>
+                          <input
+                            value={measurements[goal.id]?.observation || ""}
+                            onChange={(event) => updateMeasurement(goal.id, "observation", event.target.value)}
+                            className={fieldClass}
+                            placeholder="e.g. Needed reminders near the end"
+                          />
+                        </Field>
+                      </div>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-[0.65fr_1fr_1.5fr]">
-                      <Field label={`Value (${goal.unit})`}>
-                        <input
-                          type="number"
-                          step="any"
-                          value={measurements[goal.id]?.value || ""}
-                          onChange={(event) => updateMeasurement(goal.id, "value", event.target.value)}
-                          className={fieldClass}
-                        />
-                      </Field>
-                      <Field label="Assistance" optional>
-                        <select
-                          value={measurements[goal.id]?.assistance_level || ""}
-                          onChange={(event) => updateMeasurement(goal.id, "assistance_level", event.target.value)}
-                          className={fieldClass}
-                        >
-                          <option value="">Not recorded</option>
-                          <option value="independent">Independent</option>
-                          <option value="minimal">Minimal assistance</option>
-                          <option value="moderate">Moderate assistance</option>
-                          <option value="maximum">Maximum assistance</option>
-                        </select>
-                      </Field>
-                      <Field label="Observation" optional>
-                        <input
-                          value={measurements[goal.id]?.observation || ""}
-                          onChange={(event) => updateMeasurement(goal.id, "observation", event.target.value)}
-                          className={fieldClass}
-                          placeholder="Prompting, activity, or context"
-                        />
-                      </Field>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
@@ -326,11 +352,12 @@ export default function ProgressNoteModal({ client, goals, appointments, onClose
   );
 }
 
-function Field({ label, optional, children }) {
+function Field({ label, optional, hint, children }) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-mist">
         {label} {optional && <span className="normal-case tracking-normal">(optional)</span>}
+        {hint && <span className="block font-normal normal-case tracking-normal">{hint}</span>}
       </span>
       {children}
     </label>

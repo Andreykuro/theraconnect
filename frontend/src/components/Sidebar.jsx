@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   BarChart3,
@@ -10,16 +11,20 @@ import {
   LogOut,
   Megaphone,
   MessageCircle,
+  Newspaper,
+  Stethoscope,
   Users,
   X,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import api from "../lib/api";
 import BrandLogo from "./BrandLogo";
 
 const NAV = {
   admin: [
     { to: "/admin", label: "Schedule", icon: CalendarDays, end: true },
     { to: "/admin/clients", label: "Clients", icon: Users },
+    { to: "/admin/therapists", label: "Therapists", icon: Stethoscope },
     { to: "/admin/registrations", label: "Registrations", icon: Inbox },
     { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
     { to: "/admin/notifications", label: "Notification log", icon: Bell },
@@ -29,21 +34,48 @@ const NAV = {
     { to: "/therapist", label: "My schedule", icon: CalendarDays, end: true },
     { to: "/therapist/progress", label: "Progress & notes", icon: BarChart3 },
     { to: "/therapist/classwork", label: "Classwork", icon: ClipboardList },
-    { to: "/therapist/messages", label: "Messages", icon: MessageCircle },
+    { to: "/therapist/news", label: "Newsfeed", icon: Newspaper },
+    { to: "/therapist/messages", label: "Messages", icon: MessageCircle, badge: "messages" },
   ],
   parent: [
     { to: "/parent", label: "Home", icon: Home, end: true },
     { to: "/parent/appointments", label: "Appointments", icon: CalendarDays },
     { to: "/parent/progress", label: "Child progress", icon: BarChart3 },
     { to: "/parent/classwork", label: "Classwork", icon: ClipboardList },
-    { to: "/parent/messages", label: "Messages", icon: MessageCircle },
+    { to: "/parent/news", label: "Newsfeed", icon: Newspaper },
+    { to: "/parent/messages", label: "Messages", icon: MessageCircle, badge: "messages" },
     { to: "/parent/enrollment", label: "Enrollment", icon: ClipboardList },
   ],
 };
 
+// Unread chat messages for the red badge on "Messages". Refreshes every
+// 30 seconds and right after a chat thread is opened.
+function useUnreadMessages(role) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (role !== "parent" && role !== "therapist") return undefined;
+    let active = true;
+    const load = () =>
+      api
+        .get("/messages/unread-count")
+        .then(({ data }) => active && setCount(data.count || 0))
+        .catch(() => {});
+    load();
+    const timer = setInterval(load, 30000);
+    window.addEventListener("tc:messages-read", load);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      window.removeEventListener("tc:messages-read", load);
+    };
+  }, [role]);
+  return count;
+}
+
 export default function Sidebar({ onNavigate, onClose }) {
   const { user, logout } = useAuth();
   const items = NAV[user.role] || [];
+  const unread = useUnreadMessages(user.role);
 
   return (
     <aside className="flex h-full w-72 flex-shrink-0 flex-col border-r border-mist-light bg-white lg:w-64">
@@ -73,7 +105,7 @@ export default function Sidebar({ onNavigate, onClose }) {
       </div>
 
       <nav aria-label="Main navigation" className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
-        {items.map(({ to, label, icon: Icon, end }) => (
+        {items.map(({ to, label, icon: Icon, end, badge }) => (
           <NavLink
             key={to}
             to={to}
@@ -87,7 +119,17 @@ export default function Sidebar({ onNavigate, onClose }) {
               }`
             }
           >
-            <Icon size={18} strokeWidth={2.2} />
+            <span className="relative">
+              <Icon size={18} strokeWidth={2.2} />
+              {badge === "messages" && unread > 0 && (
+                <span
+                  aria-label={`${unread} unread messages`}
+                  className="absolute -right-2 -top-2 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-coral-red px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white"
+                >
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              )}
+            </span>
             {label}
           </NavLink>
         ))}

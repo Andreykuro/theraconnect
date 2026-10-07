@@ -31,6 +31,7 @@ export default function TherapistMessages() {
 
   const fetchThread = useCallback(async () => {
     const { data } = await api.get(`/messages/clients/${selected}`);
+    window.dispatchEvent(new Event("tc:messages-read")); // refresh the sidebar badge
     return data;
   }, [selected]);
 

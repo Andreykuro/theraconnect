@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Enrollment from "./pages/Enrollment";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import Clients from "./pages/admin/Clients";
+import Therapists from "./pages/admin/Therapists";
 import Registrations from "./pages/admin/Registrations";
 import Announcements from "./pages/admin/Announcements";
 import Notifications from "./pages/admin/Notifications";
@@ -21,6 +22,7 @@ import ParentEnrollment from "./pages/parent/ParentEnrollment";
 import ParentProgress from "./pages/parent/ParentProgress";
 import ParentClasswork from "./pages/parent/ParentClasswork";
 import ParentMessages from "./pages/parent/ParentMessages";
+import Newsfeed from "./pages/shared/Newsfeed";
 
 function Root() {
   const { user } = useAuth();
@@ -51,6 +53,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={["admin"]}>
                 <Clients />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/therapists"
+            element={
+              <ProtectedRoute roles={["admin"]}>
+                <Therapists />
               </ProtectedRoute>
             }
           />
@@ -171,6 +181,23 @@ export default function App() {
             element={
               <ProtectedRoute roles={["parent"]}>
                 <ParentMessages />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/therapist/news"
+            element={
+              <ProtectedRoute roles={["therapist"]}>
+                <Newsfeed />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/parent/news"
+            element={
+              <ProtectedRoute roles={["parent"]}>
+                <Newsfeed />
               </ProtectedRoute>
             }
           />

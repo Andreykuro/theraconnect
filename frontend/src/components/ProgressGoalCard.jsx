@@ -1,16 +1,29 @@
 import { format, parseISO } from "date-fns";
 import { AlertTriangle, CircleDashed, Minus, Sparkles, TrendingUp } from "lucide-react";
+import { metricFor, withUnit } from "../lib/goalMetrics";
 
 const TREND = {
-  improving: { label: "Improving", icon: TrendingUp, className: "bg-harbor-light text-harbor-dark" },
-  stable: { label: "Stable", icon: Minus, className: "bg-amber-light text-amber" },
+  improving: {
+    label: "Improving",
+    hint: "The latest session result is better than the one before it.",
+    icon: TrendingUp,
+    className: "bg-harbor-light text-harbor-dark",
+  },
+  stable: {
+    label: "No change",
+    hint: "The latest session result is the same as the one before it.",
+    icon: Minus,
+    className: "bg-amber-light text-amber",
+  },
   "needs-review": {
-    label: "Review suggested",
+    label: "Went back - review",
+    hint: "The latest session result is worse than the one before it. Worth checking the goal or approach.",
     icon: AlertTriangle,
     className: "bg-coral-red-light text-coral-red",
   },
   "insufficient-data": {
-    label: "Collecting data",
+    label: "Needs 2+ sessions",
+    hint: "A trend appears once at least two session results are recorded.",
     icon: CircleDashed,
     className: "bg-chalk text-mist",
   },
@@ -20,22 +33,24 @@ export default function ProgressGoalCard({ goal, compact = false }) {
   const trend = TREND[goal.trend] || TREND["insufficient-data"];
   const TrendIcon = trend.icon;
   const progress = goal.progress_percent ?? 0;
+  const metric = metricFor(goal.metric_type);
 
   return (
     <article className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-mist-light">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-display text-base font-semibold text-ink">{goal.title}</p>
+          <p className="mt-0.5 text-xs text-mist">Measured by: {metric.short}</p>
           {!compact && goal.description && <p className="mt-1 text-sm text-mist">{goal.description}</p>}
         </div>
-        <span className={`flex flex-shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${trend.className}`}>
+        <span title={trend.hint} className={`flex flex-shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${trend.className}`}>
           <TrendIcon size={12} />
           {trend.label}
         </span>
       </div>
 
       <div className="mb-2 flex items-end justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wide text-mist">Goal progress</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-mist">Progress toward target</p>
         <p className="font-mono text-lg font-semibold text-harbor-dark">
           {goal.progress_percent === null ? "—" : `${Math.round(goal.progress_percent)}%`}
         </p>
@@ -48,13 +63,13 @@ export default function ProgressGoalCard({ goal, compact = false }) {
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-        <Metric label="Baseline" value={`${goal.baseline} ${goal.unit}`} />
+        <Metric label="Started at" value={withUnit(goal.baseline, goal.unit)} />
         <Metric
-          label="Current"
-          value={goal.current_value === null ? "No data" : `${goal.current_value} ${goal.unit}`}
+          label="Latest result"
+          value={goal.current_value === null ? "No result yet" : withUnit(goal.current_value, goal.unit)}
           emphasized
         />
-        <Metric label="Target" value={`${goal.target} ${goal.unit}`} />
+        <Metric label="Target" value={withUnit(goal.target, goal.unit)} />
       </div>
 
       {goal.forecast && (
@@ -72,7 +87,7 @@ export default function ProgressGoalCard({ goal, compact = false }) {
       {!compact && goal.measurements?.length > 0 && (
         <p className="mt-3 border-t border-mist-light pt-3 text-xs text-mist">
           Based on {goal.measurements.length} recorded measurement{goal.measurements.length === 1 ? "" : "s"}.
-          Scores are calculated from the therapist-approved baseline and target.
+          Progress = how far the latest result has moved from the starting level toward the target.
         </p>
       )}
     </article>

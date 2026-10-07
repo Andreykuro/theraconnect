@@ -13,6 +13,7 @@ function toFormData(body, file) {
 export default function ParentMessages() {
   const fetchThread = useCallback(async () => {
     const { data } = await api.get("/messages/me");
+    window.dispatchEvent(new Event("tc:messages-read")); // refresh the sidebar badge
     return data;
   }, []);
 

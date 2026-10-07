@@ -221,6 +221,25 @@ CREATE TABLE IF NOT EXISTS classwork (
   created_at          TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Photos attached to an announcement post (newsfeed), shown in order.
+CREATE TABLE IF NOT EXISTS announcement_images (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  announcement_id  INTEGER NOT NULL REFERENCES announcements(id),
+  filename         TEXT NOT NULL,
+  original_name    TEXT,
+  mime_type        TEXT,
+  position         INTEGER NOT NULL DEFAULT 0,
+  created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Extra therapists of a child (the main one stays in clients.therapist_id).
+CREATE TABLE IF NOT EXISTS client_therapists (
+  client_id     INTEGER NOT NULL REFERENCES clients(id),
+  therapist_id  INTEGER NOT NULL REFERENCES therapists(id),
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (client_id, therapist_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_appt_therapist_time ON appointments(therapist_id, start_time, end_time);
 CREATE INDEX IF NOT EXISTS idx_appt_client ON appointments(client_id);
 CREATE INDEX IF NOT EXISTS idx_plan_client ON treatment_plans(client_id, status);
@@ -231,6 +250,8 @@ CREATE INDEX IF NOT EXISTS idx_messages_client_time ON messages(client_id, creat
 CREATE INDEX IF NOT EXISTS idx_attachments_client ON client_attachments(client_id);
 CREATE INDEX IF NOT EXISTS idx_classwork_client ON classwork(client_id, status);
 CREATE INDEX IF NOT EXISTS idx_classwork_therapist ON classwork(therapist_id, status);
+CREATE INDEX IF NOT EXISTS idx_client_therapists_therapist ON client_therapists(therapist_id);
+CREATE INDEX IF NOT EXISTS idx_announcement_images_post ON announcement_images(announcement_id, position);
 `;
 
 const wrapper = {};
@@ -423,6 +444,13 @@ function migrate() {
   }
   if (!hasColumn("messages", "image_path")) {
     sqljsDb.exec(`ALTER TABLE messages ADD COLUMN image_path TEXT;`);
+  }
+  // Newsfeed: who sees a post, and pinned posts stay on top.
+  if (!hasColumn("announcements", "audience")) {
+    sqljsDb.exec(`ALTER TABLE announcements ADD COLUMN audience TEXT NOT NULL DEFAULT 'all';`);
+  }
+  if (!hasColumn("announcements", "pinned")) {
+    sqljsDb.exec(`ALTER TABLE announcements ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;`);
   }
 
   // --- CHECK constraint change: SQLite can't ALTER a CHECK in place, so

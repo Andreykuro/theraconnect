@@ -15,6 +15,7 @@ export default function ClientModal({ therapists, initial, onClose, onSaved }) {
     guardian_phone: initial?.guardian_phone || "",
     guardian_email: initial?.guardian_email || "",
     therapist_id: initial?.therapist_id || "",
+    additional_therapist_ids: initial?.additional_therapist_ids || [],
     notes: initial?.notes || "",
   });
   const [error, setError] = useState("");
@@ -25,6 +26,17 @@ export default function ClientModal({ therapists, initial, onClose, onSaved }) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  function toggleExtraTherapist(id) {
+    setForm((f) => ({
+      ...f,
+      additional_therapist_ids: f.additional_therapist_ids.includes(id)
+        ? f.additional_therapist_ids.filter((x) => x !== id)
+        : [...f.additional_therapist_ids, id],
+    }));
+  }
+
+  const extraOptions = therapists.filter((t) => Number(t.id) !== Number(form.therapist_id));
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
@@ -34,7 +46,12 @@ export default function ClientModal({ therapists, initial, onClose, onSaved }) {
     }
     setSaving(true);
     try {
-      const payload = { ...form, therapist_id: form.therapist_id ? Number(form.therapist_id) : null };
+      const mainId = form.therapist_id ? Number(form.therapist_id) : null;
+      const payload = {
+        ...form,
+        therapist_id: mainId,
+        additional_therapist_ids: form.additional_therapist_ids.filter((id) => id !== mainId),
+      };
       if (isEdit) {
         await api.put(`/clients/${initial.id}`, payload);
       } else {
@@ -109,7 +126,7 @@ export default function ClientModal({ therapists, initial, onClose, onSaved }) {
             </Field>
           </div>
 
-          <Field label="Assigned therapist">
+          <Field label="Main therapist">
             <select
               value={form.therapist_id}
               onChange={(e) => update("therapist_id", e.target.value)}
@@ -123,6 +140,37 @@ export default function ClientModal({ therapists, initial, onClose, onSaved }) {
               ))}
             </select>
           </Field>
+
+          {form.therapist_id && extraOptions.length > 0 && (
+            <Field label="Other therapists (optional)">
+              <p className="mb-2 text-xs text-mist">
+                Tick anyone else who also works with this child. They can see the child's progress, classwork, and chat.
+              </p>
+              <div className="grid gap-1.5">
+                {extraOptions.map((t) => {
+                  const checked = form.additional_therapist_ids.includes(t.id);
+                  return (
+                    <label
+                      key={t.id}
+                      className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 text-sm transition ${
+                        checked ? "border-harbor bg-harbor-light/60" : "border-mist-light hover:bg-chalk"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleExtraTherapist(t.id)}
+                        className="h-4 w-4 accent-harbor"
+                      />
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: t.color }} />
+                      <span className="font-medium text-ink">{t.name}</span>
+                      <span className="ml-auto text-xs text-mist">{t.specialty}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </Field>
+          )}
 
           <Field label="Guardian name">
             <input

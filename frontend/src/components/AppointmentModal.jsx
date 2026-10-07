@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import StatusBadge from "./StatusBadge";
 import api from "../lib/api";
 import useModalEntrance from "../hooks/useModalEntrance";
 
@@ -45,6 +46,24 @@ export default function AppointmentModal({ clients, therapists, initial, onClose
   function update(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
   }
+
+  // Picking a child pre-selects their main therapist and service.
+  function pickClient(clientId) {
+    const client = clients.find((c) => String(c.id) === String(clientId));
+    setForm((f) => ({
+      ...f,
+      client_id: clientId,
+      therapist_id: client?.therapist_id ? String(client.therapist_id) : f.therapist_id,
+      service_type: client?.service_type && SERVICES.includes(client.service_type) ? client.service_type : f.service_type,
+    }));
+  }
+
+  const selectedClient = clients.find((c) => String(c.id) === String(form.client_id));
+  const careTeamIds = selectedClient
+    ? [selectedClient.therapist_id, ...(selectedClient.additional_therapist_ids || [])].filter(Boolean).map(Number)
+    : [];
+  const careTeam = therapists.filter((t) => careTeamIds.includes(Number(t.id)));
+  const others = therapists.filter((t) => !careTeamIds.includes(Number(t.id)));
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -92,12 +111,15 @@ export default function AppointmentModal({ clients, therapists, initial, onClose
   }
 
   return (
-    <div ref={backdropRef} className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4">
-      <div ref={panelRef} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+    <div ref={backdropRef} className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4 py-5">
+      <div ref={panelRef} className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-xl font-semibold text-ink">
-            {isEdit ? "Edit session" : "Schedule a session"}
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <h2 className="font-display text-xl font-semibold text-ink">
+              {isEdit ? "Edit session" : "Schedule a session"}
+            </h2>
+            {isEdit && initial.status && <StatusBadge status={initial.status} />}
+          </div>
           <button onClick={onClose} aria-label="Close" className="text-mist hover:text-ink">
             <X size={20} />
           </button>
@@ -110,7 +132,7 @@ export default function AppointmentModal({ clients, therapists, initial, onClose
             </label>
             <select
               value={form.client_id}
-              onChange={(e) => update("client_id", e.target.value)}
+              onChange={(e) => pickClient(e.target.value)}
               className="w-full rounded-lg border border-mist-light px-3 py-2 text-sm outline-none focus:border-harbor"
             >
               <option value="">Select a client…</option>
@@ -132,11 +154,31 @@ export default function AppointmentModal({ clients, therapists, initial, onClose
               className="w-full rounded-lg border border-mist-light px-3 py-2 text-sm outline-none focus:border-harbor"
             >
               <option value="">Select a therapist…</option>
-              {therapists.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} · {t.specialty}
-                </option>
-              ))}
+              {careTeam.length > 0 ? (
+                <>
+                  <optgroup label="This child's therapists">
+                    {careTeam.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} · {t.specialty}
+                        {Number(t.id) === Number(selectedClient.therapist_id) ? " (main)" : ""}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Other therapists">
+                    {others.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} · {t.specialty}
+                      </option>
+                    ))}
+                  </optgroup>
+                </>
+              ) : (
+                therapists.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} · {t.specialty}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { ClipboardPlus, FileText, Plus, Search, Sparkles, Target, UserRound } from "lucide-react";
+import { ClipboardPlus, FileText, HelpCircle, Plus, Search, Sparkles, Target, UserRound } from "lucide-react";
 import api from "../../lib/api";
 import DashboardLayout from "../../components/DashboardLayout";
 import GoalModal from "../../components/GoalModal";
@@ -152,9 +152,11 @@ export default function TherapistProgress() {
                   <p className="font-mono text-3xl font-semibold">
                     {progress.overall_progress === null ? "—" : `${Math.round(progress.overall_progress)}%`}
                   </p>
-                  <p className="text-xs text-white/70">Overall measured progress</p>
+                  <p className="text-xs text-white/70">Average progress of all goals</p>
                 </div>
               </section>
+
+              <TrackingGuide />
 
               <section>
                 <div className="mb-3 flex items-center justify-between">
@@ -241,6 +243,42 @@ export default function TherapistProgress() {
         />
       )}
     </DashboardLayout>
+  );
+}
+
+function TrackingGuide() {
+  const rows = [
+    ["Goal", "One skill you want the child to improve, e.g. \"Says the /s/ sound correctly in words\"."],
+    ["Measured by", "How you score it: Accuracy (% correct), Count (number of times), Time (how long), Rating (1-5), or Help level (1-4)."],
+    ["Started at", "The child's level when the goal was set (the baseline)."],
+    ["Target", "The level you want the child to reach."],
+    ["Latest result", "The most recent score you entered in a session note."],
+    ["Progress toward target", "How far the latest result has moved from the starting level to the target. Start = 0%, target reached = 100%."],
+    ["Trend badge", "Compares the last two session results: Improving, No change, or Went back. It needs at least 2 sessions."],
+    ["Sessions to target", "An estimate from the results so far (linear regression). It appears after 3 or more results that are moving toward the target."],
+  ];
+  return (
+    <details className="group rounded-2xl bg-white px-5 py-3 shadow-sm ring-1 ring-mist-light">
+      <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-harbor-dark">
+        <HelpCircle size={16} />
+        How progress tracking works
+        <span className="ml-auto text-xs font-normal text-mist group-open:hidden">Show</span>
+        <span className="ml-auto hidden text-xs font-normal text-mist group-open:inline">Hide</span>
+      </summary>
+      <ol className="mt-3 mb-3 list-decimal space-y-1 pl-5 text-sm text-ink">
+        <li>Click <b>Add goal</b>, choose how to measure it, then enter where the child is now and the target.</li>
+        <li>After each session, click <b>New session note</b> and enter today's result for each goal you worked on.</li>
+        <li>The progress bar, trend, and session estimate update on their own.</li>
+      </ol>
+      <dl className="grid gap-x-4 gap-y-2 border-t border-mist-light pt-3 text-xs sm:grid-cols-[150px_1fr]">
+        {rows.map(([term, text]) => (
+          <div key={term} className="contents">
+            <dt className="font-semibold text-ink">{term}</dt>
+            <dd className="text-mist">{text}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
   );
 }
 

@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { Star } from "lucide-react";
 
+// What each star means, so every therapist rates the same way.
+export const STAR_MEANING = {
+  1: "Needs more practice",
+  2: "Getting there",
+  3: "Good effort",
+  4: "Very good",
+  5: "Excellent / mastered",
+};
+
 // Read-only row of filled/empty stars - para sa display ng grado.
 export function StarRow({ value, size = 15, className = "" }) {
   return (
@@ -22,7 +31,7 @@ export function StarPicker({ value, onChange, size = 22 }) {
   const display = hovered || value;
 
   return (
-    <div className="flex items-center gap-1" onMouseLeave={() => setHovered(0)}>
+    <div className="flex flex-wrap items-center gap-1" onMouseLeave={() => setHovered(0)}>
       {[1, 2, 3, 4, 5].map((n) => (
         <button
           key={n}
@@ -35,6 +44,9 @@ export function StarPicker({ value, onChange, size = 22 }) {
           <Star size={size} className={n <= display ? "fill-sunrise text-sunrise" : "fill-transparent text-mist-light"} />
         </button>
       ))}
+      <span className="ml-2 text-xs font-semibold text-mist">
+        {display ? `${display}/5 - ${STAR_MEANING[display]}` : "Tap a star"}
+      </span>
     </div>
   );
 }

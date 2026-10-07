@@ -21,6 +21,8 @@ async function main() {
       DELETE FROM client_attachments;
       DELETE FROM classwork;
       DELETE FROM appointments;
+      DELETE FROM client_therapists;
+      DELETE FROM announcement_images;
       DELETE FROM announcements;
       DELETE FROM clients;
       DELETE FROM users;

@@ -2,12 +2,13 @@ const express = require("express");
 const db = require("../db");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { sendSMS, formatSessionTime: when } = require("../services/notify");
+const { therapistCanAccess } = require("../services/careTeam");
 
 const router = express.Router();
 
 const withDetails = `
   SELECT a.*, c.name AS client_name, c.guardian_name, c.guardian_phone, c.guardian_email,
-         t.name AS therapist_name, t.color AS therapist_color
+         t.name AS therapist_name, t.color AS therapist_color, t.specialty AS therapist_specialty
   FROM appointments a
   JOIN clients c ON c.id = a.client_id
   JOIN therapists t ON t.id = a.therapist_id
@@ -183,6 +184,11 @@ router.post("/", requireAuth, requireRole("admin", "therapist"), (req, res) => {
   if (req.user.role === "therapist" && Number(therapist_id) !== Number(req.user.therapist_id)) {
     return res.status(403).json({ error: "You can only schedule sessions for yourself" });
   }
+  const client = db.prepare("SELECT * FROM clients WHERE id = ?").get(client_id);
+  if (!client) return res.status(400).json({ error: "Client not found" });
+  if (req.user.role === "therapist" && !therapistCanAccess(req.user, client)) {
+    return res.status(403).json({ error: "This child is not on your caseload" });
+  }
   if (hasConflict({ therapist_id, start_time, end_time })) {
     return res.status(409).json({ error: "This therapist already has a session in that time slot" });
   }
@@ -302,6 +308,62 @@ router.post("/:id/confirm", requireAuth, requireRole("parent", "admin"), (req, r
   }
 
   db.prepare("UPDATE appointments SET status = 'confirmed' WHERE id = ?").run(appt.id);
+  res.json(db.prepare(withDetails + " WHERE a.id = ?").get(appt.id));
+});
+
+// POST /api/appointments/:id/cant-attend  (parent says they can't make it)
+// Cancels the session and keeps the reason in the notes so the clinic sees why.
+router.post("/:id/cant-attend", requireAuth, requireRole("parent"), (req, res) => {
+  const appt = db
+    .prepare("SELECT a.*, c.user_id FROM appointments a JOIN clients c ON c.id = a.client_id WHERE a.id = ?")
+    .get(req.params.id);
+  if (!appt || Number(appt.user_id) !== Number(req.user.id)) {
+    return res.status(404).json({ error: "Appointment not found" });
+  }
+  if (!["pending", "confirmed", "requested"].includes(appt.status)) {
+    return res.status(400).json({ error: "This session can no longer be changed" });
+  }
+  if (new Date(appt.start_time) < new Date()) {
+    return res.status(400).json({ error: "This session has already started" });
+  }
+  const reason = typeof req.body?.reason === "string" ? req.body.reason.trim().slice(0, 300) : "";
+  const note = `Parent can't attend${reason ? `: ${reason}` : ""}`;
+  db.prepare("UPDATE appointments SET status = 'cancelled', notes = ? WHERE id = ?").run(
+    appt.notes ? `${appt.notes}\n${note}` : note,
+    appt.id
+  );
+  res.json(db.prepare(withDetails + " WHERE a.id = ?").get(appt.id));
+});
+
+// POST /api/appointments/:id/remind  (admin re-sends the "please confirm" SMS)
+router.post("/:id/remind", requireAuth, requireRole("admin"), async (req, res) => {
+  const appt = db.prepare(withDetails + " WHERE a.id = ?").get(req.params.id);
+  if (!appt) return res.status(404).json({ error: "Appointment not found" });
+  if (appt.status !== "pending") {
+    return res.status(400).json({ error: "Only sessions waiting for the family's confirmation need a reminder" });
+  }
+  const result = await sendSMS({
+    to: appt.guardian_phone,
+    appointmentId: appt.id,
+    message: `Reminder: ${appt.client_name}'s ${appt.service_type} with ${appt.therapist_name} is on ${when(appt.start_time)}. Please confirm attendance in the TheraConnect parent portal. Thank you!`,
+  }).catch(() => ({ status: "failed" }));
+  res.json({ ok: true, status: result?.status || "sent" });
+});
+
+// POST /api/appointments/:id/complete  (admin/therapist marks a past session as done)
+router.post("/:id/complete", requireAuth, requireRole("admin", "therapist"), (req, res) => {
+  const appt = db.prepare("SELECT * FROM appointments WHERE id = ?").get(req.params.id);
+  if (!appt) return res.status(404).json({ error: "Appointment not found" });
+  if (!canManage(req.user, appt)) {
+    return res.status(403).json({ error: "You can only update your own sessions" });
+  }
+  if (!["pending", "confirmed"].includes(appt.status)) {
+    return res.status(400).json({ error: "Only scheduled sessions can be marked as done" });
+  }
+  if (new Date(appt.start_time) > new Date()) {
+    return res.status(400).json({ error: "This session hasn't started yet" });
+  }
+  db.prepare("UPDATE appointments SET status = 'completed' WHERE id = ?").run(appt.id);
   res.json(db.prepare(withDetails + " WHERE a.id = ?").get(appt.id));
 });
 

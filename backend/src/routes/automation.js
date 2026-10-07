@@ -1,5 +1,6 @@
 const express = require("express");
 const db = require("../db");
+const { therapistCanAccess } = require("../services/careTeam");
 const { requireAuth, requireRole } = require("../middleware/auth");
 
 const router = express.Router();
@@ -203,10 +204,7 @@ router.get("/schedule-suggestions", requireAuth, (req, res) => {
     )
     .get(clientId);
   if (!client) return res.status(404).json({ error: "Client not found" });
-  if (
-    req.user.role === "therapist" &&
-    Number(client.therapist_id) !== Number(req.user.therapist_id)
-  ) {
+  if (req.user.role === "therapist" && !therapistCanAccess(req.user, client)) {
     return res.status(403).json({ error: "Forbidden for this client" });
   }
   if (req.user.role === "parent" && Number(client.user_id) !== Number(req.user.id)) {

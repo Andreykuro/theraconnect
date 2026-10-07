@@ -26,7 +26,7 @@ export default function ClassworkModal({ client, onClose, onSaved }) {
     e.preventDefault();
     setError("");
     if (!title.trim()) {
-      setError("Give this assignment a title.");
+      setError("Give this activity a name.");
       return;
     }
     setSaving(true);
@@ -53,7 +53,7 @@ export default function ClassworkModal({ client, onClose, onSaved }) {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="font-display text-xl font-semibold text-ink">Assign classwork</h2>
-            <p className="text-sm text-mist">For {client.name}</p>
+            <p className="text-sm text-mist">For {client.name} · the parent will see this in their portal</p>
           </div>
           <button onClick={onClose} aria-label="Close" className="text-mist hover:text-ink">
             <X size={20} />
@@ -61,27 +61,27 @@ export default function ClassworkModal({ client, onClose, onSaved }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Field label="Title">
+          <Field label="Activity name">
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Practice /s/ sounds — 10 words"
+              placeholder="e.g. Practice /s/ sounds - 10 words"
               className="w-full rounded-lg border border-mist-light px-3 py-2 text-sm outline-none focus:border-harbor"
             />
           </Field>
 
-          <Field label="Instructions" hint="Optional">
+          <Field label="Instructions for the parent" hint="Optional">
             <textarea
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
               rows={3}
-              placeholder="What should the family do at home?"
+              placeholder="What to do, how many times, and what to send back. e.g. Say each word 3 times, then upload a photo of the finished sheet."
               className="w-full resize-none rounded-lg border border-mist-light px-3 py-2 text-sm outline-none focus:border-harbor"
             />
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Category">
+            <Field label="Therapy type">
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
@@ -94,7 +94,7 @@ export default function ClassworkModal({ client, onClose, onSaved }) {
                 ))}
               </select>
             </Field>
-            <Field label="Due date" hint="Optional">
+            <Field label="Submit by" hint="Optional">
               <input
                 type="date"
                 value={dueDate}
@@ -104,10 +104,10 @@ export default function ClassworkModal({ client, onClose, onSaved }) {
             </Field>
           </div>
 
-          <Field label="Worksheet" hint="Optional · image or PDF">
+          <Field label="Worksheet or guide for the parent" hint="Optional · image or PDF">
             <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-mist-light px-3 py-2.5 text-sm text-mist transition hover:border-harbor hover:text-harbor">
               <Paperclip size={15} />
-              {file ? file.name : "Attach a file"}
+              {file ? file.name : "Attach a worksheet"}
               <input
                 type="file"
                 accept="image/*,application/pdf"

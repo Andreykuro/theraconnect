@@ -1,6 +1,18 @@
 const express = require("express");
 const db = require("../db");
 const { requireAuth, requireRole } = require("../middleware/auth");
+const {
+  ON_CASELOAD_SQL,
+  therapistCanAccess,
+  additionalTherapists,
+  setAdditionalTherapists,
+} = require("../services/careTeam");
+
+// Adds the extra therapists (care team) to a client row.
+function withCareTeam(client) {
+  const extra = additionalTherapists(client.id);
+  return { ...client, additional_therapists: extra, additional_therapist_ids: extra.map((t) => t.id) };
+}
 
 const router = express.Router();
 
@@ -9,11 +21,11 @@ router.get("/", requireAuth, requireRole("admin", "therapist"), (req, res) => {
              LEFT JOIN therapists t ON t.id = c.therapist_id WHERE 1=1`;
   const params = [];
   if (req.user.role === "therapist") {
-    sql += " AND c.therapist_id = ?";
-    params.push(req.user.therapist_id);
+    sql += ` AND ${ON_CASELOAD_SQL}`;
+    params.push(req.user.therapist_id, req.user.therapist_id);
   }
   sql += " ORDER BY c.name ASC";
-  res.json(db.prepare(sql).all(...params));
+  res.json(db.prepare(sql).all(...params).map(withCareTeam));
 });
 
 router.get("/:id", requireAuth, (req, res) => {
@@ -23,10 +35,10 @@ router.get("/:id", requireAuth, (req, res) => {
     return res.status(403).json({ error: "Forbidden" });
   }
   // Therapists only see children on their own caseload (guardian contact details included)
-  if (req.user.role === "therapist" && Number(client.therapist_id) !== Number(req.user.therapist_id)) {
+  if (req.user.role === "therapist" && !therapistCanAccess(req.user, client)) {
     return res.status(403).json({ error: "Forbidden" });
   }
-  res.json(client);
+  res.json(withCareTeam(client));
 });
 
 router.post("/", requireAuth, requireRole("admin"), (req, res) => {
@@ -41,6 +53,7 @@ router.post("/", requireAuth, requireRole("admin"), (req, res) => {
     guardian_phone,
     guardian_email,
     therapist_id,
+    additional_therapist_ids,
     notes,
   } = req.body || {};
 
@@ -73,7 +86,8 @@ router.post("/", requireAuth, requireRole("admin"), (req, res) => {
       therapist_id || null,
       notes || null
     );
-  res.status(201).json(db.prepare("SELECT * FROM clients WHERE id = ?").get(info.lastInsertRowid));
+  setAdditionalTherapists(info.lastInsertRowid, additional_therapist_ids, therapist_id);
+  res.status(201).json(withCareTeam(db.prepare("SELECT * FROM clients WHERE id = ?").get(info.lastInsertRowid)));
 });
 
 router.put("/:id", requireAuth, requireRole("admin"), (req, res) => {
@@ -108,7 +122,13 @@ router.put("/:id", requireAuth, requireRole("admin"), (req, res) => {
     merged.notes,
     existing.id
   );
-  res.json(db.prepare("SELECT * FROM clients WHERE id = ?").get(existing.id));
+  if (Array.isArray(req.body.additional_therapist_ids)) {
+    setAdditionalTherapists(existing.id, req.body.additional_therapist_ids, merged.therapist_id);
+  } else if (Number(merged.therapist_id) !== Number(existing.therapist_id)) {
+    // New main therapist may have been an extra one - drop the duplicate.
+    db.prepare("DELETE FROM client_therapists WHERE client_id = ? AND therapist_id = ?").run(existing.id, merged.therapist_id);
+  }
+  res.json(withCareTeam(db.prepare("SELECT * FROM clients WHERE id = ?").get(existing.id)));
 });
 
 module.exports = router;

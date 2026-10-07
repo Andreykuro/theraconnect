@@ -27,6 +27,13 @@ router.post("/login", (req, res) => {
     });
   }
 
+  if (user.role === "therapist") {
+    const profile = db.prepare("SELECT active FROM therapists WHERE id = ?").get(user.therapist_id);
+    if (profile && !profile.active) {
+      return res.status(403).json({ error: "This therapist account has been deactivated. Please contact the clinic admin." });
+    }
+  }
+
   const payload = {
     id: user.id,
     role: user.role,

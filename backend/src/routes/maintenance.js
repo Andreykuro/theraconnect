@@ -21,10 +21,12 @@ const TABLES = [
   "goal_measurements",
   "ai_audit_logs",
   "announcements",
+  "announcement_images",
   "notifications_log",
   "messages",
   "client_attachments",
   "classwork",
+  "client_therapists",
 ];
 
 function tableCount(table) {

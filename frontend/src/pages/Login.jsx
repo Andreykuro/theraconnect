@@ -267,7 +267,7 @@ export default function Login() {
 
           <div className="login-demo mt-5 rounded-2xl border border-dashed border-harbor/20 bg-white/70 p-4">
             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-mist">
-              Demo accounts · thesis defense
+              QA testing · demo accounts
             </p>
             <div className="flex flex-wrap gap-2">
               {DEMO_ACCOUNTS.map((account) => (

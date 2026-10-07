@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const db = require("../db");
+const { therapistCanAccess } = require("../services/careTeam");
 const { requireAuth, requireRole } = require("../middleware/auth");
 
 const router = express.Router();
@@ -295,7 +296,7 @@ router.get("/:clientId/attachments", requireAuth, (req, res) => {
 
   const allowed =
     req.user.role === "admin" ||
-    (req.user.role === "therapist" && Number(client.therapist_id) === Number(req.user.therapist_id)) ||
+    therapistCanAccess(req.user, client) ||
     (req.user.role === "parent" && Number(client.user_id) === Number(req.user.id));
   if (!allowed) return res.status(403).json({ error: "Forbidden" });
 
@@ -307,7 +308,7 @@ router.get("/:clientId/attachments", requireAuth, (req, res) => {
 router.get("/attachments/:id/file", requireAuth, (req, res) => {
   const file = db
     .prepare(
-      `SELECT a.filename, a.mime_type, a.original_name, c.user_id, c.therapist_id
+      `SELECT a.filename, a.mime_type, a.original_name, a.client_id, c.user_id, c.therapist_id
        FROM client_attachments a JOIN clients c ON c.id = a.client_id WHERE a.id = ?`
     )
     .get(req.params.id);
@@ -315,7 +316,7 @@ router.get("/attachments/:id/file", requireAuth, (req, res) => {
 
   const allowed =
     req.user.role === "admin" ||
-    (req.user.role === "therapist" && Number(file.therapist_id) === Number(req.user.therapist_id)) ||
+    therapistCanAccess(req.user, file) ||
     (req.user.role === "parent" && Number(file.user_id) === Number(req.user.id));
   if (!allowed) return res.status(403).json({ error: "Forbidden" });
 

@@ -1,5 +1,6 @@
 const express = require("express");
 const db = require("../db");
+const { ON_CASELOAD_SQL } = require("../services/careTeam");
 const { requireAuth } = require("../middleware/auth");
 const { progressForClient } = require("./progress");
 
@@ -55,9 +56,11 @@ function parentHome(req, res) {
 
   const upcoming = db
     .prepare(
-      `SELECT a.*, t.name AS therapist_name, t.color AS therapist_color
+      `SELECT a.*, t.name AS therapist_name, t.color AS therapist_color, t.specialty AS therapist_specialty,
+              c.name AS client_name
        FROM appointments a
        JOIN therapists t ON t.id = a.therapist_id
+       JOIN clients c ON c.id = a.client_id
        WHERE a.client_id = ? AND a.status != 'cancelled' AND a.end_time >= ?
        ORDER BY a.start_time ASC LIMIT 6`
     )
@@ -65,8 +68,17 @@ function parentHome(req, res) {
   const pending = upcoming.filter((a) => a.status === "pending");
 
   const announcements = db
-    .prepare("SELECT * FROM announcements ORDER BY created_at DESC LIMIT 5")
-    .all();
+    .prepare(
+      `SELECT a.*, (SELECT filename FROM announcement_images i WHERE i.announcement_id = a.id
+                    ORDER BY i.position ASC LIMIT 1) AS cover_filename
+       FROM announcements a WHERE a.audience IN ('all','parents')
+       ORDER BY a.pinned DESC, a.created_at DESC LIMIT 5`
+    )
+    .all()
+    .map(({ cover_filename, ...a }) => ({
+      ...a,
+      cover_url: cover_filename ? `/api/uploads/announcements/${cover_filename}` : null,
+    }));
 
   const unreadMessages = db
     .prepare(
@@ -112,9 +124,9 @@ function parentHome(req, res) {
         id: `ann-${a.id}`,
         type: "announcement",
         priority: "low",
-        message: a.title,
+        message: a.title || truncate(a.body || "New photos from the clinic"),
         created_at: a.created_at,
-        link: "/parent",
+        link: "/parent/news",
       })),
   ]);
 
@@ -163,10 +175,10 @@ function therapistHome(req, res) {
        FROM messages m
        JOIN users u ON u.id = m.sender_id
        JOIN clients c ON c.id = m.client_id
-       WHERE c.therapist_id = ? AND m.sender_role = 'parent' AND m.read_at IS NULL AND m.deleted_at IS NULL
+       WHERE ${ON_CASELOAD_SQL} AND m.sender_role = 'parent' AND m.read_at IS NULL AND m.deleted_at IS NULL
        ORDER BY m.created_at DESC LIMIT 5`
     )
-    .all(therapistId);
+    .all(therapistId, therapistId);
 
   const notifications = sortNotifications([
     ...overdueNotes.map((n) => ({

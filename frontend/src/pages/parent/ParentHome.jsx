@@ -35,7 +35,12 @@ export default function ParentHome() {
 
   async function handleConfirm(appt) {
     await api.post(`/appointments/${appt.id}/confirm`);
-    load();
+    await load();
+  }
+
+  async function handleCantAttend(appt, reason) {
+    await api.post(`/appointments/${appt.id}/cant-attend`, { reason });
+    await load();
   }
 
   const childFirstName = data?.client?.name?.split(" ")[0];
@@ -106,7 +111,13 @@ export default function ParentHome() {
                       </p>
                     )}
                     {data.upcoming_appointments.slice(0, 3).map((a) => (
-                      <SessionCard key={a.id} appt={a} onConfirm={handleConfirm} showChild={false} />
+                      <SessionCard
+                        key={a.id}
+                        appt={a}
+                        viewer="parent"
+                        onConfirm={handleConfirm}
+                        onCantAttend={handleCantAttend}
+                      />
                     ))}
                   </div>
                 </section>
@@ -136,13 +147,25 @@ export default function ParentHome() {
               </div>
 
               <div>
-                <h2 className="mb-3 font-display text-lg font-semibold text-ink">Clinic announcements</h2>
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="font-display text-lg font-semibold text-ink">Clinic news</h2>
+                  <Link to="/parent/news" className="text-xs font-semibold text-harbor hover:text-harbor-dark">
+                    Open newsfeed
+                  </Link>
+                </div>
                 <div className="space-y-3">
                   {data.announcements.map((a) => (
-                    <div key={a.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-mist-light">
-                      <h3 className="mb-1 font-display text-sm font-semibold text-ink">{a.title}</h3>
-                      <p className="text-sm text-mist">{a.body}</p>
-                    </div>
+                    <Link
+                      key={a.id}
+                      to="/parent/news"
+                      className="block overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-mist-light transition hover:ring-harbor/30"
+                    >
+                      {a.cover_url && <img src={a.cover_url} alt="" className="h-32 w-full object-cover" />}
+                      <div className="p-4">
+                        {a.title && <h3 className="mb-1 font-display text-sm font-semibold text-ink">{a.title}</h3>}
+                        <p className="line-clamp-3 text-sm text-mist">{a.body}</p>
+                      </div>
+                    </Link>
                   ))}
                   {data.announcements.length === 0 && (
                     <p className="text-sm text-mist">No announcements right now.</p>
