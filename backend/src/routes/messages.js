@@ -93,7 +93,45 @@ function threadFor(clientId, readerRole) {
     .all(clientId)
     .map(present);
 
-  return { client, messages };
+  return { client, messages, details: threadDetails(clientId, messages) };
+}
+
+// Side panel info for the chat page: the child, their care team, the next
+// session, and the latest shared photos.
+function threadDetails(clientId, messages) {
+  const child = db
+    .prepare("SELECT id, name, service_type, guardian_name, therapist_id FROM clients WHERE id = ?")
+    .get(clientId);
+  if (!child) return null;
+  const team = db
+    .prepare(
+      `SELECT t.id, t.name, t.specialty, t.color, CASE WHEN t.id = ? THEN 1 ELSE 0 END AS main
+       FROM therapists t
+       WHERE t.id = ? OR t.id IN (SELECT therapist_id FROM client_therapists WHERE client_id = ?)
+       ORDER BY main DESC, t.name ASC`
+    )
+    .all(child.therapist_id, child.therapist_id, clientId)
+    .map((t) => ({ ...t, main: Boolean(t.main) }));
+  const nextSession = db
+    .prepare(
+      `SELECT a.id, a.start_time, a.end_time, a.service_type, a.status, t.name AS therapist_name, t.color AS therapist_color
+       FROM appointments a JOIN therapists t ON t.id = a.therapist_id
+       WHERE a.client_id = ? AND a.status IN ('requested','pending','confirmed') AND a.end_time >= ?
+       ORDER BY a.start_time ASC LIMIT 1`
+    )
+    .get(clientId, new Date().toISOString());
+  const photoIds = messages
+    .filter((m) => m.has_image && !m.deleted_at)
+    .map((m) => m.id)
+    .reverse()
+    .slice(0, 9);
+  return {
+    child: { id: child.id, name: child.name, service_type: child.service_type, guardian_name: child.guardian_name },
+    care_team: team,
+    next_session: nextSession || null,
+    photo_ids: photoIds,
+    message_count: messages.filter((m) => !m.deleted_at).length,
+  };
 }
 
 // Returns { message } on success or { error } when there's nothing to send.
@@ -157,7 +195,7 @@ router.get("/unread-count", requireAuth, (req, res) => {
 
 // --- Therapist inbox: one row per assigned client, with last message + unread count ---
 router.get("/threads", requireAuth, requireRole("therapist", "admin"), (req, res) => {
-  let sql = "SELECT c.id, c.name FROM clients c WHERE 1=1";
+  let sql = "SELECT c.id, c.name, c.service_type, c.guardian_name FROM clients c WHERE 1=1";
   const params = [];
   if (req.user.role === "therapist") {
     sql += ` AND ${ON_CASELOAD_SQL}`;
@@ -192,6 +230,8 @@ router.get("/threads", requireAuth, requireRole("therapist", "admin"), (req, res
       return {
         client_id: c.id,
         client_name: c.name,
+        service_type: c.service_type,
+        guardian_name: c.guardian_name,
         last_message: preview,
         last_sender: last?.sender_role ?? null,
         last_at: last?.created_at ?? null,

@@ -2,14 +2,17 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
   Ban,
+  CalendarClock,
   Check,
   Copy,
+  Images,
   ImagePlus,
   Loader2,
   MoreHorizontal,
   Pencil,
   SendHorizontal,
   Trash2,
+  Users,
   X,
 } from "lucide-react";
 import { format, parseISO, isToday, isYesterday, isSameDay, differenceInMinutes } from "date-fns";
@@ -23,8 +26,11 @@ const GROUP_WINDOW_MIN = 5;
 // (no Bearer token). Fetch once as a blob and reuse the object URL.
 const imageCache = new Map();
 
+// SQLite saves times in UTC as "YYYY-MM-DD HH:MM:SS" - mark them as UTC so
+// the browser shows the local (Philippine) time.
 function toDate(s) {
-  return parseISO(s.replace(" ", "T"));
+  if (/[zZ]|[+-]\d\d:?\d\d$/.test(s)) return parseISO(s);
+  return parseISO(`${s.replace(" ", "T")}Z`);
 }
 
 function dayLabel(d) {
@@ -42,8 +48,17 @@ function initials(name = "") {
     .join("");
 }
 
-export default function ChatThread({ role, fetchThread, sendMessage, onEditMessage, onUnsendMessage, emptyLabel }) {
+export default function ChatThread({
+  role,
+  fetchThread,
+  sendMessage,
+  onEditMessage,
+  onUnsendMessage,
+  emptyLabel,
+  detailsClass = "hidden xl:flex", // when the side panel appears
+}) {
   const [messages, setMessages] = useState([]);
+  const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [input, setInput] = useState("");
@@ -66,6 +81,7 @@ export default function ChatThread({ role, fetchThread, sendMessage, onEditMessa
       try {
         const data = await fetchThread();
         setMessages(data.messages);
+        setDetails(data.details || null);
         setError("");
       } catch (err) {
         setError(err.response?.data?.error || "Couldn't load messages.");
@@ -203,7 +219,9 @@ export default function ChatThread({ role, fetchThread, sendMessage, onEditMessa
   const lastMineIdx = messages.reduce((acc, m, i) => (m.sender_role === role && !m.deleted_at ? i : acc), -1);
 
   return (
-    <div className="flex h-[72vh] flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-mist-light">
+    <div className="flex h-full min-h-0 gap-4">
+    <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-mist-light">
+      <ChatHeader role={role} details={details} />
       <div
         ref={scrollRef}
         onScroll={(e) => {
@@ -359,6 +377,144 @@ export default function ChatThread({ role, fetchThread, sendMessage, onEditMessa
 
       {lightbox && <Lightbox src={lightbox} onClose={() => setLightbox(null)} />}
     </div>
+    {details && <DetailsPanel role={role} details={details} className={detailsClass} onOpenImage={setLightbox} />}
+    </div>
+  );
+}
+
+// Top bar of the conversation: who you're talking to.
+function ChatHeader({ role, details }) {
+  if (!details) return <div className="h-[68px] flex-shrink-0 border-b border-mist-light" />;
+  const team = details.care_team || [];
+  const main = team.find((t) => t.main) || team[0];
+  const title = role === "parent" ? (main ? main.name : "TheraFun care team") : details.child.name;
+  const subtitle =
+    role === "parent"
+      ? team.length > 1
+        ? `${team.length} therapists on ${details.child.name.split(" ")[0]}'s care team`
+        : main?.specialty || "Your child's therapist"
+      : `Guardian: ${details.child.guardian_name} · ${details.child.service_type}`;
+  const avatarColor = role === "parent" ? main?.color : "var(--color-harbor)";
+  const avatarText = initials((title || "").replace(/^(Therapist|Coach)\s+/i, ""));
+  return (
+    <div className="flex flex-shrink-0 items-center gap-3 border-b border-mist-light bg-white px-4 py-3 sm:px-5">
+      <span className="relative">
+        <span
+          className="flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white"
+          style={{ backgroundColor: avatarColor || "var(--color-harbor)" }}
+        >
+          {avatarText}
+        </span>
+        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-therafun-lime ring-2 ring-white" />
+      </span>
+      <div className="min-w-0">
+        <p className="truncate font-display text-base font-semibold text-ink">{title}</p>
+        <p className="truncate text-xs text-mist">{subtitle}</p>
+      </div>
+      {team.length > 1 && role === "parent" && (
+        <div className="ml-auto hidden -space-x-2 sm:flex">
+          {team.map((t) => (
+            <span
+              key={t.id}
+              title={t.name}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold text-white ring-2 ring-white"
+              style={{ backgroundColor: t.color }}
+            >
+              {initials(t.name.replace(/^(Therapist|Coach)\s+/i, ""))}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Right-hand panel: child, care team, next session, shared photos.
+function DetailsPanel({ role, details, className, onOpenImage }) {
+  const next = details.next_session;
+  const start = next ? parseISO(next.start_time) : null;
+  return (
+    <aside className={`${className} w-80 flex-shrink-0 flex-col gap-4 overflow-y-auto`}>
+      <section className="rounded-3xl bg-white p-5 text-center shadow-sm ring-1 ring-mist-light">
+        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-harbor to-harbor-dark font-display text-xl font-semibold text-white">
+          {initials(details.child.name)}
+        </span>
+        <p className="mt-3 font-display text-lg font-semibold text-ink">{details.child.name}</p>
+        <p className="text-xs text-mist">{details.child.service_type}</p>
+        {role !== "parent" && <p className="mt-1 text-xs text-mist">Guardian: {details.child.guardian_name}</p>}
+        <p className="mt-3 inline-flex rounded-full bg-chalk px-3 py-1 text-[11px] font-semibold text-mist">
+          {details.message_count} message{details.message_count === 1 ? "" : "s"} in this chat
+        </p>
+      </section>
+
+      <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-mist-light">
+        <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-mist">
+          <Users size={14} /> Care team
+        </h3>
+        <ul className="space-y-3">
+          {details.care_team.map((t) => (
+            <li key={t.id} className="flex items-center gap-3">
+              <span
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                style={{ backgroundColor: t.color }}
+              >
+                {initials(t.name.replace(/^(Therapist|Coach)\s+/i, ""))}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-ink">{t.name}</span>
+                <span className="block truncate text-xs text-mist">{t.specialty}</span>
+              </span>
+              {t.main && (
+                <span className="rounded-full bg-harbor-light px-2 py-0.5 text-[10px] font-bold text-harbor-dark">Main</span>
+              )}
+            </li>
+          ))}
+          {details.care_team.length === 0 && <li className="text-sm text-mist">No therapist assigned yet.</li>}
+        </ul>
+      </section>
+
+      <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-mist-light">
+        <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-mist">
+          <CalendarClock size={14} /> Next session
+        </h3>
+        {next ? (
+          <div className="flex items-center gap-3">
+            <span className="flex w-12 flex-shrink-0 flex-col overflow-hidden rounded-xl text-center ring-1 ring-mist-light">
+              <span className="py-0.5 text-[9px] font-bold uppercase text-white" style={{ backgroundColor: next.therapist_color }}>
+                {format(start, "MMM")}
+              </span>
+              <span className="py-1 font-display text-lg font-semibold leading-none text-ink">{format(start, "d")}</span>
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold text-ink">{next.service_type}</span>
+              <span className="block text-xs text-mist">
+                {format(start, "EEE")} · {format(start, "h:mm a")} · {next.therapist_name.replace(/^(Therapist|Coach)\s+/i, "")}
+              </span>
+              <span className="mt-0.5 block text-[11px] font-semibold text-harbor">
+                {next.status === "pending" ? "Waiting for confirmation" : next.status === "requested" ? "Waiting for approval" : "Confirmed"}
+              </span>
+            </span>
+          </div>
+        ) : (
+          <p className="text-sm text-mist">No upcoming session.</p>
+        )}
+      </section>
+
+      <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-mist-light">
+        <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-mist">
+          <Images size={14} /> Shared photos
+        </h3>
+        {details.photo_ids.length === 0 ? (
+          <p className="text-sm text-mist">Photos sent in this chat will appear here.</p>
+        ) : (
+          <div className="grid grid-cols-3 gap-1.5">
+            {details.photo_ids.map((id) => (
+              <ChatImage key={id} messageId={id} onOpen={onOpenImage} thumb />
+            ))}
+          </div>
+        )}
+      </section>
+    </aside>
   );
 }
 
@@ -375,7 +531,7 @@ function Tail({ mine }) {
   );
 }
 
-function ChatImage({ messageId, onOpen, onLoad }) {
+function ChatImage({ messageId, onOpen, onLoad, thumb = false }) {
   const [src, setSrc] = useState(() => imageCache.get(messageId) || null);
   const [failed, setFailed] = useState(false);
 
@@ -395,6 +551,18 @@ function ChatImage({ messageId, onOpen, onLoad }) {
     };
   }, [messageId, src]);
 
+  if (thumb) {
+    return (
+      <button
+        type="button"
+        onClick={() => src && onOpen(src)}
+        className="aspect-square overflow-hidden rounded-lg bg-chalk"
+        aria-label="View photo"
+      >
+        {src && <img src={src} alt="" className="h-full w-full object-cover transition hover:scale-105" />}
+      </button>
+    );
+  }
   if (failed) {
     return <div className="flex h-32 w-52 items-center justify-center rounded-xl bg-chalk text-xs text-mist">Photo unavailable</div>;
   }

@@ -35,8 +35,8 @@ export default function ParentMessages() {
   }, []);
 
   return (
-    <DashboardLayout title="Messages" subtitle="Chat directly with your child's therapist">
-      <div className="mx-auto max-w-2xl">
+    <DashboardLayout hideChatbot title="Messages" subtitle="Chat directly with your child's therapist">
+      <div className="h-[calc(100dvh-8.5rem)] min-h-[540px]">
         <ChatThread
           role="parent"
           fetchThread={fetchThread}

@@ -6,7 +6,7 @@ import Chatbot from "./Chatbot";
 import NotificationBell from "./NotificationBell";
 import { prefersReducedMotion } from "../lib/motion";
 
-export default function DashboardLayout({ title, subtitle, actions, children }) {
+export default function DashboardLayout({ title, subtitle, actions, children, hideChatbot = false }) {
   const [navigationOpen, setNavigationOpen] = useState(false);
   const mainRef = useRef(null);
   const scope = useRef(null);
@@ -78,7 +78,8 @@ export default function DashboardLayout({ title, subtitle, actions, children }) 
         </header>
         <main ref={mainRef} className="flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">{children}</main>
       </div>
-      <Chatbot />
+      {/* Hidden on the Messages pages so it doesn't cover the send button */}
+      {!hideChatbot && <Chatbot />}
     </div>
   );
 }
