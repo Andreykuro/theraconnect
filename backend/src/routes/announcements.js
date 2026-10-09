@@ -64,7 +64,7 @@ function withImages(post) {
   const images = db
     .prepare("SELECT id, filename FROM announcement_images WHERE announcement_id = ? ORDER BY position ASC, id ASC")
     .all(post.id)
-    .map((img) => ({ id: img.id, url: `/api/uploads/announcements/${img.filename}` }));
+    .map((img) => ({ id: img.id, url: `/api/announcements/images/${img.filename}` }));
   return { ...post, pinned: Boolean(post.pinned), images };
 }
 
@@ -76,6 +76,18 @@ function getPost(id) {
     )
     .get(id);
 }
+
+// GET /api/announcements/images/:filename - newsfeed photos. Served from this
+// router (not a separate static folder in server.js) so the photos work as
+// long as this file is in place. Public on purpose: <img> tags can't send the
+// login token, and these are clinic posts meant for every family.
+router.get("/images/:filename", (req, res) => {
+  const name = path.basename(req.params.filename);
+  const file = path.join(IMAGE_DIR, name);
+  if (!fs.existsSync(file)) return res.status(404).json({ error: "Photo not found" });
+  res.set("Cache-Control", "public, max-age=86400");
+  res.sendFile(file);
+});
 
 // GET /api/announcements?category=  - the newsfeed (pinned first, newest next)
 router.get("/", requireAuth, (req, res) => {

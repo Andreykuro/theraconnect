@@ -77,7 +77,7 @@ function parentHome(req, res) {
     .all()
     .map(({ cover_filename, ...a }) => ({
       ...a,
-      cover_url: cover_filename ? `/api/uploads/announcements/${cover_filename}` : null,
+      cover_url: cover_filename ? `/api/announcements/images/${cover_filename}` : null,
     }));
 
   const unreadMessages = db
